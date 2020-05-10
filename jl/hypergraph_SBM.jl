@@ -19,29 +19,81 @@ function sampleEdge(S, Z, ϑ, Ω)
     z = Z[S]
     θ = ϑ[S]
     X = Poisson(prod(θ)*Ω(z))
-    return(fill(S, rand(X)))
+    return(rand(X))
+    # return(fill(S, rand(X)))
 end
 
-function sampleEdges(Z, ϑ, Ω, k_max, k_min=1)
+function sampleEdges(Z, ϑ, Ω; kmax=3, kmin=2)
     """
     run sampleEdge() for each possible distinct sequence of no more than k_max node labels, allowing repeats, and concatenate the results as a single array (edge list)
     The arrays Z and ϑ are required to be of the same length n. 
+    Returns a Dict, keyed by edgesize. 
+    Each value in this dict is itself a dict of edges, with counts, of the specified size. 
     """
-
-    E = []
-    n = length(Z) 
-    for k = k_min:k_max
-        T = with_replacement_combinations(1:n,k)
-        for S = T
-            e = sampleEdge(S, Z, ϑ, Ω)
-            append!(E, e)
+    E = Dict{Integer, Dict}()
+    n = length(Z)
+    for k in kmin:kmax
+        T = with_replacement_combinations(1:n, k)
+        Ek = Dict{Array{Integer}, Integer}()
+        for S in T
+            X = sampleEdge(S, Z, ϑ, Ω)
+            if X > 0
+                Ek[S] = X
+            end
         end
+        E[k] = Ek
     end
     return(E)
 end
 
-Z = [1 2 2 1 2]
-ϑ = [4 3 5 2 1]
+function logLikelihood(E, Z, ϑ, Ω)
+    """
+    Given an edge list of the type returned by sampleEdges(), return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω
+    """
+    n = length(Z)
+    L = 0
+    for k in keys(E)
+        T = with_replacement_combinations(1:n, k) 
+        Ek = E[k]   
+        for S in T
+            z = Z[S]
+            θ = ϑ[S]
+            X = Poisson(prod(θ)*Ω(z))
+            
+            m = get(Ek, S, 0)
+            L += log(pdf(X, m))
+        end
+    end
+    return(L)
+end
 
-E = sampleEdges(Z, ϑ, z->plantedPartition(z,.001,.01), 3)
-print(E)
+# quick experiment
+
+n = 100
+Z = rand(1:5, n)
+ϑ = ones(1,n) + rand(1,n)
+Ω = z->plantedPartition(z,.0001,.001)
+
+kmin = 1
+kmax = 4
+
+E = sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
+
+println("Generated data has ")
+for k in kmin:kmax
+    println("$(length(E[k])) edges of size $k")
+end
+
+ll = logLikelihood(E, Z, ϑ, Ω)
+println("The likelihood of the true partition is $(round(ll, digits = 2))")
+
+Z_wrong = rand(1:5, n)
+
+ll = logLikelihood(E, Z_wrong, ϑ, Ω)
+
+println("The likelihood of a random partition is $(round(ll, digits =2))")
+
+
+
+
+
