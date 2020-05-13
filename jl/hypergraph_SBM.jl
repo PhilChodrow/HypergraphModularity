@@ -67,33 +67,26 @@ function logLikelihood(E, Z, ϑ, Ω)
     return(L)
 end
 
-# quick experiment
-
-n = 100
-Z = rand(1:5, n)
-ϑ = ones(1,n) + rand(1,n)
-Ω = z->plantedPartition(z,.0001,.001)
-
-kmin = 1
-kmax = 4
-
-E = sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
-
-println("Generated data has ")
-for k in kmin:kmax
-    println("$(length(E[k])) edges of size $k")
+function D(E)
+    """
+    Given an edge list of the type returned by sampleEdges(), return a dict of node degrees. 
+    The degree of a node is the number of times that it appears in an edge in E. 
+    """
+    d = Dict{Integer, Integer}()
+    for k in keys(E)
+        Ek = E[k]
+        for e in keys(Ek)
+            for i in e
+                d[i] = get(d, i, 0) + 1
+            end
+        end
+    end
+    return(d)
 end
 
-ll = logLikelihood(E, Z, ϑ, Ω)
-println("The likelihood of the true partition is $(round(ll, digits = 2))")
-
-Z_wrong = rand(1:5, n)
-
-ll = logLikelihood(E, Z_wrong, ϑ, Ω)
-
-println("The likelihood of a random partition is $(round(ll, digits =2))")
+function hatΩ(E, Z)
+    d = D(e)
 
 
-
-
+end
 
