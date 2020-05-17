@@ -1,12 +1,21 @@
 using Distributions
 using Base 
 using Combinatorics
+using Parameters
 
 include("omega.jl")
 
 """
 The purpose of this module is to define a flexible stochastic blockmodel for hypergraphs. At this stage, all we are aiming to do is *sample* from the model give a partition, a group intensity function, and a degree vector. 
 """
+
+@with_kw mutable struct hypergraph
+    """
+    A very simple hypergraph composite type, designed to hold an edge list E and a degree sequence. 
+    """
+    E::Dict{Integer, Dict} 
+    D::Dict{Integer, Integer} = Dict{Integer, Integer}()
+end
 
 function sampleEdge(S, Z, ϑ, Ω)
     """
@@ -43,34 +52,12 @@ function sampleEdges(Z, ϑ, Ω; kmax=3, kmin=2)
         end
         E[k] = Ek
     end
-    return(E)
+    return(hypergraph(E = E))
 end
 
-function logLikelihood(E, Z, ϑ, Ω)
+function D(E::Dict{Integer, Dict})
     """
-    Given an edge list of the type returned by sampleEdges(), return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω
-    """
-    n = length(Z)
-    L = 0
-    for k in keys(E)
-        T = with_replacement_combinations(1:n, k) 
-        Ek = E[k]   
-        for S in T
-            z = Z[S]
-            θ = ϑ[S]
-            X = Poisson(prod(θ)*Ω(z))
-            
-            m = get(Ek, S, 0)
-            L += log(pdf(X, m))
-        end
-    end
-    return(L)
-end
-
-function D(E)
-    """
-    Given an edge list of the type returned by sampleEdges(), return a dict of node degrees. 
-    The degree of a node is the number of times that it appears in an edge in E. 
+    Compute the degree sequence of an edge list. 
     """
     d = Dict{Integer, Integer}()
     for k in keys(E)
@@ -84,9 +71,46 @@ function D(E)
     return(d)
 end
 
-function hatΩ(E, Z)
-    d = D(e)
-
-
+function computeDegrees!(H::hypergraph)
+    """
+    Compute the degree sequence of a hypergraph and store it as a field of the hypergraph. 
+    """
+    H.D = D(H.E)
 end
+
+function sampleSBM(args...;kwargs...)
+    """
+    Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. 
+    """
+    H = sampleEdges(args...;kwargs...)
+    computeDegrees!(H)
+    return(H)
+end
+
+# function logLikelihood(E, Z, ϑ, Ω)
+#     """
+#     Given an edge list of the type returned by sampleEdges(), return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω
+#     """
+#     n = length(Z)
+#     L = 0
+#     for k in keys(E)
+#         T = with_replacement_combinations(1:n, k) 
+#         Ek = E[k]   
+#         for S in T
+#             z = Z[S]
+#             θ = ϑ[S]
+#             X = Poisson(prod(θ)*Ω(z))
+            
+#             m = get(Ek, S, 0)
+#             L += log(pdf(X, m))
+#         end
+#     end
+#     return(L)
+# end
+
+
+
+# function hatΩ(E, Z)
+#     d = D(e)
+# end
 
