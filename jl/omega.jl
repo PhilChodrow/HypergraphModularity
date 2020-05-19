@@ -28,3 +28,4 @@ function groupSizePartition(z, fk=k->1)
     a = sort(collect(values(a)))
     fk(k)*prod(a)^(1/k) 
 end
+

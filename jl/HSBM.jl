@@ -11,13 +11,13 @@ The purpose of this module is to define a flexible stochastic blockmodel for hyp
 
 @with_kw mutable struct hypergraph
     """
-    A very simple hypergraph composite type, designed to hold an edge list E and a degree sequence. 
+    A very simple hypergraph composite type, designed to hold an edge list E, a degree sequence. 
     """
     E::Dict{Integer, Dict} 
     D::Dict{Integer, Integer} = Dict{Integer, Integer}()
 end
 
-function sampleEdge(S, Z, ϑ, Ω)
+function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any)
     """
     Sample a Poisson number of edges on a sequence of nodes S according to the hypergraph SBM law. 
     S: an array of node indices 
@@ -32,7 +32,7 @@ function sampleEdge(S, Z, ϑ, Ω)
     # return(fill(S, rand(X)))
 end
 
-function sampleEdges(Z, ϑ, Ω; kmax=3, kmin=2)
+function sampleEdges(Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any; kmax::Integer=3, kmin::Integer=2)
     """
     run sampleEdge() for each possible distinct sequence of no more than k_max node labels, allowing repeats, and concatenate the results as a single array (edge list)
     The arrays Z and ϑ are required to be of the same length n. 
@@ -43,7 +43,7 @@ function sampleEdges(Z, ϑ, Ω; kmax=3, kmin=2)
     n = length(Z)
     for k in kmin:kmax
         T = with_replacement_combinations(1:n, k)
-        Ek = Dict{Array{Integer}, Integer}()
+        Ek = Dict{Array{Int64}, Integer}()
         for S in T
             X = sampleEdge(S, Z, ϑ, Ω)
             if X > 0
@@ -52,7 +52,7 @@ function sampleEdges(Z, ϑ, Ω; kmax=3, kmin=2)
         end
         E[k] = Ek
     end
-    return(hypergraph(E = E))
+    return(E)
 end
 
 function D(E::Dict{Integer, Dict})
@@ -80,37 +80,40 @@ end
 
 function sampleSBM(args...;kwargs...)
     """
-    Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. 
+    Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. This is the primary user-facing function for sampling tasks. 
     """
-    H = sampleEdges(args...;kwargs...)
+    E = sampleEdges(args...;kwargs...)
+    H = hypergraph(E = E)
+
     computeDegrees!(H)
     return(H)
 end
 
-# function logLikelihood(E, Z, ϑ, Ω)
-#     """
-#     Given an edge list of the type returned by sampleEdges(), return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω
-#     """
-#     n = length(Z)
-#     L = 0
-#     for k in keys(E)
-#         T = with_replacement_combinations(1:n, k) 
-#         Ek = E[k]   
-#         for S in T
-#             z = Z[S]
-#             θ = ϑ[S]
-#             X = Poisson(prod(θ)*Ω(z))
+function logLikelihood(H::hypergraph, Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any)
+    """
+    Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
+    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases cases. 
+    """
+    n = length(Z)
+    L = 0
+    for k in keys(H.E)  
+        T = with_replacement_combinations(1:n, k) 
+        Ek = H.E[k]   
+        for S in T
+            z = Z[S]
+            θ = ϑ[S]
+            X = Poisson(prod(θ)*Ω(z))
             
-#             m = get(Ek, S, 0)
-#             L += log(pdf(X, m))
-#         end
-#     end
-#     return(L)
-# end
+            m = get(Ek, S, 0)
+            L += log(pdf(X, m))
+        end
+    end
+    return(L)
+end
 
-
-
-# function hatΩ(E, Z)
-#     d = D(e)
-# end
-
+function countEdges(H::hypergraph)
+    """
+    count the number of edges in H
+    """
+    sum([length(H.E[k]) for k in keys(H.E)])
+end

@@ -23,5 +23,12 @@ docs/site/
 # environment.
 Manifest.toml
 
+
+# Other
+
 .DS_Store
+.ipynb_checkpoints/*
+
+
+
 
