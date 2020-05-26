@@ -28,6 +28,7 @@ Manifest.toml
 
 .DS_Store
 .ipynb_checkpoints/*
+jl/.ipynb_checkpoints/*
 
 
 
