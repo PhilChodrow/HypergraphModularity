@@ -22,10 +22,15 @@ function plantedPartition(z, ω0, ω1, fk=k->1)
     fk(k)*(ω0 + (ω1 - ω0)*δ(z))
 end
 
-function groupSizePartition(z, fk=k->1)
+function harmonicMean(p)
+    k = sum(p)
+    prod(p)^(1/k)
+end
+
+function groupSizePartition(z, fp=sizePartitionHarmonic, fk=k->1)
     k = length(z)
-    a = countmap(vec(z))
-    a = sort(collect(values(a)))
-    fk(k)*prod(a)^(1/k) 
+    p = countmap(vec(z))
+    p = sort(collect(values(p)))
+    fk(k)*fp(p)
 end
 

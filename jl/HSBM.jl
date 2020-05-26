@@ -5,6 +5,7 @@ using Parameters
 
 include("omega.jl")
 
+
 """
 The purpose of this module is to define a flexible stochastic blockmodel for hypergraphs. At this stage, all we are aiming to do is *sample* from the model give a partition, a group intensity function, and a degree vector. 
 """
@@ -24,12 +25,15 @@ function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, 
     Z: an integer array of length n. Each integer is a group label. 
     Ω: a group interaction function, such as plantedPartition
     Θ: a nonnegative float array of length n
+    C: combinatorial factor
     """
     z = Z[S]
     θ = ϑ[S]
-    X = Poisson(prod(θ)*Ω(z))
+    # combinatorial factor associated with repeated indices
+    c = values(countmap(vec(S)))
+    C = multinomial(c...)
+    X = Poisson(prod(θ)*Ω(z)*C)
     return(rand(X))
-    # return(fill(S, rand(X)))
 end
 
 function sampleEdges(Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any; kmax::Integer=3, kmin::Integer=2)
@@ -54,6 +58,16 @@ function sampleEdges(Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any; kmax::Int
     end
     return(E)
 end
+
+function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Integer=3, kmin::Integer=2)
+    """
+    An alternative method when Z and ϑ are specified as dicts keyed by node rather than as arrays. 
+    """
+    Z = [Z[i] for i in 1:length(Z)]
+    ϑ = [ϑ[i] for i in 1:length(ϑ)]
+    sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
+end
+
 
 function D(E::Dict{Integer, Dict})
     """
@@ -92,7 +106,7 @@ end
 function logLikelihood(H::hypergraph, Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any)
     """
     Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases cases. 
+    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases     . 
     """
     n = length(Z)
     L = 0
