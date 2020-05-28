@@ -69,7 +69,7 @@ function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Integer=3, kmin::Integer=
 end
 
 
-function D(E::Dict{Integer, Dict})
+function computeDegrees(E::Dict{Integer, Dict})
     """
     Compute the degree sequence of an edge list. 
     """
@@ -89,7 +89,7 @@ function computeDegrees!(H::hypergraph)
     """
     Compute the degree sequence of a hypergraph and store it as a field of the hypergraph. 
     """
-    H.D = D(H.E)
+    H.D = computeDegrees(H.E)
 end
 
 function sampleSBM(args...;kwargs...)

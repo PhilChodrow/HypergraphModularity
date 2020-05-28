@@ -2,6 +2,13 @@ using StatsBase
 using Combinatorics
 
 """
+TODO: currently Z and D are given as 2D arrays, but let's convert the standard input to 1D arrays. Cleaner and faster. NEVERMIND seems to be trivial. Can still look for various performance improvements though. 
+"""
+
+
+include("HSBM.jl")
+
+"""
 At the moment, the functions for evaluating sums in this module are strictly for the group-size partition intensity function and its relatives. 
 """
 
@@ -68,12 +75,8 @@ end
 
 function evalSumsPV(Z, D, r)
     N = Dict()
-    for i = 1:r
-        for j = 1:i # number of nonzero entries
-            for p in partitions(i, j)
-                N[p] = evalSumPV(p, Z, D)
-            end
-        end
+    for i = 1:r, j = 1:i, p in partitions(i, j)
+        N[p] = evalSumPV(p, Z, D)
     end
     return(N)
 end
@@ -100,48 +103,95 @@ function correctOvercounting(M::Dict, p::Array)
     return(S)
 end
 
-function computeμ(Z::Array, D::Array, r)
-    V = [sum([D[i]*(Z[i] == j) for i in 1:length(Z)]) for j in 1:maximum(Z)]
+function computeMoments(Z::Array, D::Array, r, ℓ=0)
+    if ℓ==0
+        ℓ=maximum(Z)
+    end
+
+    V = [sum(D.*(Z .== j)) for j in 1:ℓ]
     μ = [sum(V.^i) for i = 1:r]
-    return(μ)
+    return(V, μ)
 end
 
-function evalSums(Z::Array, D::Array, r)
+function evalConstants(r)
+    C = Dict{Array{Integer, 1}, Integer}()
+    for i = 1:r, j = 1:i, p in partitions(i, j)
+        orderCorrection = prod([factorial(c) for c in values(countmap(p))])
+        C[p] = multinomial(p...) ÷ orderCorrection
+    end
+    return(C)
+end;
+
+function evalSums(Z::Array, D::Array, r; constants=true,ℓ=0)
     """
     Z: an Array of integer group labels
     D: an Array of degrees
     r: the largest hyperedge size to compute
     """
-    μ = computeμ(Z, D, r)
+    V, μ = computeMoments(Z, D, r, ℓ)
     
     M = Dict{Array{Integer, 1}, Integer}()
 
-    for i = 1:r, j = 1:i
-        for p in partitions(i, j)
-            M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
+    for i = 1:r, j = 1:i, p in partitions(i, j)
+        M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
+    end
+
+    if constants
+        C = evalConstants(r)
+        for p in keys(M)
+            M[p] *= C[p]
         end
     end
-    
-    N = Dict{Array{Integer, 1}, Integer}()
-    for p in keys(M)
-        orderCorrection = 1
-        counts = values(countmap(p))
-        for c in counts
-            orderCorrection *= factorial(c) 
-        end
-        N[p] = M[p] * multinomial(p...) ÷ orderCorrection
-    end
-    return(N)
-end;
+
+    return V, μ, M
+end
+
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
 
-function evalSums(Z::Array, D::Dict, r)
+function evalSums(Z::Array, D::Dict, r, ℓ=0)
     d = [D[i] for i in 1:length(Z)]
-    return evalSums(Z, d, r)
+    return evalSums(Z, d, r,ℓ)
 end
 
-function evalSums(Z::Array, H::hypergraph)
+function evalSums(Z::Array, H::hypergraph, ℓ=0)
     r = maximum(keys(H.E))
-    return evalSums(Z, H.D, r)
+    return evalSums(Z, H.D, r, ℓ)
+end
+
+function momentIncrements(V, μ, i, t, D, Z)
+    """
+    update V and μ in place by moving node i 
+    from its current group to group t
+    while returning the increment in μ for subsequent computation
+    """
+        
+    ΔV = zero(V)
+    # update V
+    s      = Z[i];
+    ΔV[t] += D[i];
+    ΔV[s] -= D[i];
+    
+    r = length(μ)
+    Δμ = [(V[s] + ΔV[s])^j - V[s]^j + (V[t] + ΔV[t])^j - V[t]^j for j in 1:r]
+
+    return ΔV, Δμ
+end
+
+function increments(V, μ, M, i, t, D, Z)
+    
+    ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
+
+    # compute increments in M using recursion formula from notes
+    ΔM = Dict{Array{Integer, 1}, Integer}()
+    for i = 1:r, j = 1:i, p in partitions(i, j)
+        ΔM[p] = Δμ[p[end]]*get(M, p[1:(end-1)], 1) + μ[p[end]]*get(ΔM, p[1:(end-1)], 0) + Δμ[p[end]]*get(ΔM, p[1:(end-1)], 0) - correctOvercounting(ΔM,p)
+    end
+
+    return(ΔV, Δμ, ΔM)
+end
+
+function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+    M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
+    return(V + ΔV, μ + Δμ, M̃)
 end
