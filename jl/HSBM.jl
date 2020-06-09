@@ -32,7 +32,7 @@ function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, 
     # combinatorial factor associated with repeated indices
     c = values(countmap(vec(S)))
     C = multinomial(c...)
-    X = Poisson(prod(θ)*Ω(z)*C)
+    X = Poisson(prod(θ)*Ω(z;mode="group")*C)
     return(rand(X))
 end
 
@@ -67,7 +67,6 @@ function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Integer=3, kmin::Integer=
     ϑ = [ϑ[i] for i in 1:length(ϑ)]
     sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
 end
-
 
 function computeDegrees(E::Dict{Integer, Dict})
     """
@@ -116,7 +115,7 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, ϑ::Array{Float64,1}, �
         for S in T
             z = Z[S]
             θ = ϑ[S]
-            X = Poisson(prod(θ)*Ω(z))
+            X = Poisson(prod(θ)*Ω(z;mode="group"))
             
             m = get(Ek, S, 0)
             L += log(pdf(X, m))

@@ -2,7 +2,7 @@ using StatsBase
 using Combinatorics
 
 include("HSBM.jl")
-include("sums.jl")
+include("vol.jl")
 
 function estimateΩ(H, Z; method="Piecewise Constant")
     @assert method == "Piecewise Constant"
