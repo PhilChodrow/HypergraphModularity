@@ -1,5 +1,7 @@
 using StatsBase
 
+include("utils.jl")
+
 """
 Throughout the docstrings, n gives the number of nodes. 
 """
@@ -27,10 +29,6 @@ function harmonicMean(p)
     prod(p)^(1/k)
 end
 
-function partitionize(z)
-    p = countmap(vec(z))
-    p = sort(collect(values(p)))
-end
 
 function sizePartition(p, fp=harmonicMean, fk=k->1)
     k = sum(p)

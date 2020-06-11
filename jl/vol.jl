@@ -150,9 +150,8 @@ end
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
 
-function evalSums(Z::Array, D::Dict, r, ℓ=0, bigInt=true)
-    d = [D[i] for i in 1:length(Z)]
-    return evalSums(Z, d, r; ℓ=ℓ, bigInt=bigInt)
+function evalSums(Z::Array, D::Array, r, ℓ=0, bigInt=true)
+    return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
 end
 
 function evalSums(Z::Array, H::hypergraph, ℓ=0, bigInt=true)
@@ -199,17 +198,17 @@ function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
     return(V + ΔV, μ + Δμ, M̃)
 end
 
-function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, ℓ::Int64, Ω, bigInt=true)
+function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω, kmax::Int64,  bigInt=true)
     """
     Naive implementation, computes sums from scratch. 
     H: hypergraph
     Z: array storing cluster indices; c[i] is the cluster node i is in
-    ℓ: maximum hyperedges size in H
+    kmax: maximum hyperedges size in H
     Ω: group interation function (e.g., planted partition). Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors. 
     """
 
     obj = 0
-    V, μ, M = evalSums(Z, H, ℓ, bigInt)
+    V, μ, M = evalSums(Z, H, kmax, bigInt)
     for p in keys(M)
         obj += Ω(p, mode = "partition")*M[p]
     end

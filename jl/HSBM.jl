@@ -15,7 +15,7 @@ The purpose of this module is to define a flexible stochastic blockmodel for hyp
     A very simple hypergraph composite type, designed to hold an edge list E, a degree sequence. 
     """
     E::Dict{Integer, Dict} 
-    D::Dict{Integer, Integer} = Dict{Integer, Integer}()
+    D::Array{Integer, 1} = Array{Integer, 1}()
 end
 
 function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any)
@@ -73,6 +73,7 @@ function computeDegrees(E::Dict{Integer, Dict})
     Compute the degree sequence of an edge list. 
     """
     d = Dict{Integer, Integer}()
+    
     for k in keys(E)
         Ek = E[k]
         for e in keys(Ek)
@@ -81,14 +82,18 @@ function computeDegrees(E::Dict{Integer, Dict})
             end
         end
     end
-    return(d)
+    return([d[i] for i = 1:length(d)])
+end
+
+function computeDegrees(H::hypergraph)
+    return computeDegrees(H.E)
 end
 
 function computeDegrees!(H::hypergraph)
     """
     Compute the degree sequence of a hypergraph and store it as a field of the hypergraph. 
     """
-    H.D = computeDegrees(H.E)
+    H.D = computeDegrees(H)
 end
 
 function sampleSBM(args...;kwargs...)
@@ -102,27 +107,7 @@ function sampleSBM(args...;kwargs...)
     return(H)
 end
 
-function logLikelihood(H::hypergraph, Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any)
-    """
-    Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases     . 
-    """
-    n = length(Z)
-    L = 0
-    for k in keys(H.E)  
-        T = with_replacement_combinations(1:n, k) 
-        Ek = H.E[k]   
-        for S in T
-            z = Z[S]
-            θ = ϑ[S]
-            X = Poisson(prod(θ)*Ω(z;mode="group"))
-            
-            m = get(Ek, S, 0)
-            L += log(pdf(X, m))
-        end
-    end
-    return(L)
-end
+
 
 function countEdges(H::hypergraph)
     """

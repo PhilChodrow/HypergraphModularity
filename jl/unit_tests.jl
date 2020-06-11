@@ -1,6 +1,9 @@
 using Test
 using Combinatorics
 include("vol.jl")
+include("omega.jl")
+include("HSBM.jl")
+include("objectives.jl")
 
 # let's make some simple, fake data
 Z = [1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5] # group partition
@@ -68,6 +71,34 @@ end
 
     # test for incremental updates in the cut term (first term of the modularity). NATE, plug in here
     @testset "cut term" begin
-        @test false
+        @test_broken false
     end
+end
+
+@testset "modularity" begin
+
+    # sample from a small HSBM
+    n = 10
+    Z = rand(1:5, n)
+    ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
+    μ = mean(ϑ)
+
+    fk = k->(2*μ*k)^(-k)
+    fp = harmonicMean
+    Ω = (z; mode)->Ω_partition(z, fp, fk; mode=mode)
+
+    kmax = 3
+
+    H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
+
+    # compute the true LL
+    trueLogLik = logLikelihood(H, Z, Ω)
+
+    # compute the three terms including modularity and check for near equality. 
+
+    Q, K, C = L(H, Z, Ω, kmax, false)
+
+    @test Q + K + C ≈ trueLogLik
+
+    
 end

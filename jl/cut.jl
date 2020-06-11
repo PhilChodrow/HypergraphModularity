@@ -3,7 +3,7 @@ Evaluating the first term of the modularity objective. This is
 equivalent to a constant minus a hypergraph cut function.
 """
 
-function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64, Ω)
+function first_term_eval(H::hypergraph,c::Array{Int64,1},Ω, kmax::Int64, )
     """
     First version: not optimized, goal is to make this as quick and easy as
     possible using existing code.
