@@ -181,10 +181,12 @@ end
 
 function increments(V, μ, M, i, t, D, Z)
     
+
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
     ΔM = Dict{Array{Integer, 1}, Integer}()
+    r = maximum([sum(p) for p in keys(M)])
     for i = 1:r, j = 1:i, p in partitions(i, j)
         ΔM[p] = Δμ[p[end]]*get(M, p[1:(end-1)], 1) + μ[p[end]]*get(ΔM, p[1:(end-1)], 0) + Δμ[p[end]]*get(ΔM, p[1:(end-1)], 0) - correctOvercounting(ΔM,p)
     end
