@@ -38,8 +38,7 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
     NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases
     """
     n = length(Z)
-    L = 0
-
+    L = 0.0
     D = 1.0*H.D
 
     for k in keys(H.E)  
@@ -47,12 +46,12 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
         Ek = H.E[k]   
         for S in T
 
-            S = sort(S)
             z = Z[S]
             c = counting_coefficient(S)
             θ = D[S]
             
             m = get(Ek, S, 0)
+
             L += c*log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
         end
     end
@@ -62,22 +61,23 @@ end
 function logLikelihoodNaive(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
     """
     Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases
+    This function just iterates over all possible tuples in all permutations -- used only for testing purposes. 
     """
     n = length(Z)
-    L = 0
+    L = 0.0
+    D = 1.0*H.D
 
     for k in keys(H.E)  
         T = Iterators.product((1:n for i = 1:k)...)
-        
         Ek = H.E[k]  
-        
-        D = 1.0*H.D
 
         for s in T
             S = collect(s)
+            S = sort(S)
+
             z = Z[S]
             θ = D[S]
+
             m = get(Ek, S, 0)
             L += log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
         end
