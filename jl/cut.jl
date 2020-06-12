@@ -3,6 +3,7 @@ include("omega.jl")
 include("HSBM.jl")
 
 function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64, Ω)
+
     """
     First version: not optimized, goal is to make this as quick and easy as
     possible using existing code.
@@ -15,7 +16,7 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64
     # Is there any reason to start with l = 1 sized hyperedges?
     for l = kmin:kmax
         El = H.E[l]
-        lfac = factorial(l)
+        # lfac = factorial(l)
         for edge in keys(El)
             perms = lfac  # adjusting for all permutations
             pe = cvec_2_pvec(edge,l)

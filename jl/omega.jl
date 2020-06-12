@@ -1,5 +1,7 @@
 using StatsBase
 
+include("utils.jl")
+
 """
 Throughout the docstrings, n gives the number of nodes. 
 """
@@ -27,10 +29,17 @@ function harmonicMean(p)
     prod(p)^(1/k)
 end
 
-function groupSizePartition(z, fp=sizePartitionHarmonic, fk=k->1)
-    k = length(z)
-    p = countmap(vec(z))
-    p = sort(collect(values(p)))
-    fk(k)*fp(p)
+
+function sizePartition(p, fp=harmonicMean, fk=k->1)
+    k = sum(p)
+    return fk(k)*fp(p)
 end
 
+function Ω_partition(x, fp, fk; mode="group")
+    if mode == "group"
+        p = partitionize(x)
+    elseif mode == "partition"
+        p = x
+    end
+    return sizePartition(p, fp, fk)
+end

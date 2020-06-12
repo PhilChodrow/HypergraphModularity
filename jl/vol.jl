@@ -1,11 +1,6 @@
 using StatsBase
 using Combinatorics
 
-"""
-TODO: currently Z and D are given as 2D arrays, but let's convert the standard input to 1D arrays. Cleaner and faster. NEVERMIND seems to be trivial. Can still look for various performance improvements though. 
-"""
-
-
 include("HSBM.jl")
 
 """
@@ -122,12 +117,18 @@ function evalConstants(r)
     return(C)
 end;
 
-function evalSums(Z::Array, D::Array, r; constants=true,ℓ=0)
+function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     """
     Z: an Array of integer group labels
     D: an Array of degrees
     r: the largest hyperedge size to compute
     """
+
+    if bigInt
+        D = convert(Array{BigInt,1}, D)
+        Z = convert(Array{BigInt,1}, Z)
+    end
+
     V, μ = computeMoments(Z, D, r, ℓ)
     
     M = Dict{Array{Integer, 1}, Integer}()
@@ -149,14 +150,13 @@ end
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
 
-function evalSums(Z::Array, D::Dict, r, ℓ=0)
-    d = [D[i] for i in 1:length(Z)]
-    return evalSums(Z, d, r,ℓ)
+function evalSums(Z::Array, D::Array, r, ℓ=0, bigInt=true)
+    return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
 end
 
-function evalSums(Z::Array, H::hypergraph, ℓ=0)
+function evalSums(Z::Array, H::hypergraph, ℓ=0, bigInt=true)
     r = maximum(keys(H.E))
-    return evalSums(Z, H.D, r, ℓ)
+    return evalSums(Z, H.D, r, ℓ, bigInt)
 end
 
 function momentIncrements(V, μ, i, t, D, Z)
@@ -180,10 +180,12 @@ end
 
 function increments(V, μ, M, i, t, D, Z)
     
+
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
     ΔM = Dict{Array{Integer, 1}, Integer}()
+    r = maximum([sum(p) for p in keys(M)])
     for i = 1:r, j = 1:i, p in partitions(i, j)
         ΔM[p] = Δμ[p[end]]*get(M, p[1:(end-1)], 1) + μ[p[end]]*get(ΔM, p[1:(end-1)], 0) + Δμ[p[end]]*get(ΔM, p[1:(end-1)], 0) - correctOvercounting(ΔM,p)
     end
@@ -194,4 +196,21 @@ end
 function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
     M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
     return(V + ΔV, μ + Δμ, M̃)
+end
+
+function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω, kmax::Int64,  bigInt=true)
+    """
+    Naive implementation, computes sums from scratch. 
+    H: hypergraph
+    Z: array storing cluster indices; c[i] is the cluster node i is in
+    kmax: maximum hyperedges size in H
+    Ω: group interation function (e.g., planted partition). Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors. 
+    """
+
+    obj = 0
+    V, μ, M = evalSums(Z, H, kmax, bigInt)
+    for p in keys(M)
+        obj += Ω(p, mode = "partition")*M[p]
+    end
+    return obj
 end
