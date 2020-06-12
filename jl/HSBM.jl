@@ -30,9 +30,9 @@ function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, 
     z = Z[S]
     θ = ϑ[S]
     # combinatorial factor associated with repeated indices
-    c = values(countmap(vec(S)))
-    C = multinomial(c...)
-    X = Poisson(prod(θ)*Ω(z;mode="group")*C)
+    
+    c = counting_coefficient(S)    
+    X = Poisson(prod(θ)*Ω(z;mode="group")*c)
     return(rand(X))
 end
 

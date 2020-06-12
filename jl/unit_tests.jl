@@ -1,5 +1,7 @@
 using Test
 using Combinatorics
+using Random
+
 include("vol.jl")
 include("omega.jl")
 include("HSBM.jl")
@@ -10,7 +12,6 @@ Z = [1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5] # group partition
 D = [3, 4, 2, 5, 6, 4, 3, 2, 5, 2, 2]; # degree sequence
 
 r = 3
-
 
 @testset "test sums" begin
 
@@ -62,7 +63,7 @@ end
             end
             if check
                 V̄, μ̄, N̄ = evalSums(Z, D, r; constants=true)
-                return any([N[p] == N[p] for p in keys(M)])
+                return all([N[p] == N[p] for p in keys(M)])
             end     
         end;
 
@@ -75,30 +76,45 @@ end
     end
 end
 
-@testset "modularity" begin
 
-    # sample from a small HSBM
-    n = 10
-    Z = rand(1:5, n)
-    ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
-    μ = mean(ϑ)
+Random.seed!(4321)
 
-    fk = k->(2*μ*k)^(-k)
-    fp = harmonicMean
-    Ω = (z; mode)->Ω_partition(z, fp, fk; mode=mode)
+# sample from a small HSBM
+n = 10
+Z = rand(1:5, n)
+ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
+μ = mean(ϑ)
+fk = k->(2*μ*k)^(-k)
+fp = harmonicMean
+Ω  = (z; mode)->Ω_partition(z, fp, fk; mode=mode)
 
-    kmax = 3
+kmax = 3
 
-    H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
+H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 
-    # compute the true LL
+@testset "likelihood" begin
     trueLogLik = logLikelihood(H, Z, Ω)
+    naiveLogLik = logLikelihoodNaive(H, Z, Ω)
+    @test trueLogLik ≈ naiveLogLik
+end
 
-    # compute the three terms including modularity and check for near equality. 
 
-    Q, K, C = L(H, Z, Ω, kmax, false)
-
-    @test Q + K + C ≈ trueLogLik
+# @testset "modularity" begin
 
     
-end
+
+#     # compute the true LL
+#     trueLogLik = logLikelihood(H, Z, Ω)
+
+#     # compute the three terms including modularity and check for near equality. 
+
+#     Q, K, C = L(H, Z, Ω, kmax, false)
+
+#     println(Q)
+#     println(K)
+#     println(C)
+
+#     @test Q + K + C ≈ trueLogLik
+
+    
+# end
