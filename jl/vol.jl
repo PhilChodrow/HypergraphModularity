@@ -22,8 +22,7 @@ function evalSumNaive(p, Z, D)
     T = Iterators.product((1:n for i = 1:r)...)
 
     for R in T
-        a = countmap(vec(Z[collect(R)]))
-        a = -sort(-collect(values(a)))
+        a = partitionize(R)
         if a == p
             S += prod(D[collect(R)])
         end
@@ -140,10 +139,9 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     if constants
         C = evalConstants(r)
         for p in keys(M)
-            M[p] *= C[p]
+            M[p] *= C[p] 
         end
     end
-
     return V, μ, M
 end
 
@@ -180,7 +178,6 @@ end
 
 function increments(V, μ, M, i, t, D, Z)
     
-
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
@@ -198,7 +195,7 @@ function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
     return(V + ΔV, μ + Δμ, M̃)
 end
 
-function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω, kmax::Int64,  bigInt=true)
+function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
     """
     Naive implementation, computes sums from scratch. 
     H: hypergraph
@@ -208,6 +205,8 @@ function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω, kmax::Int64,  b
     """
 
     obj = 0
+
+    kmax = maximum(keys(H.E))
     V, μ, M = evalSums(Z, H, kmax, bigInt)
     for p in keys(M)
         obj += Ω(p, mode = "partition")*M[p]
