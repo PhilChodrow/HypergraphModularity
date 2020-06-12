@@ -4,7 +4,7 @@ include("HSBM.jl")
 include("utils.jl")
 
 
-function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64, Ω)
+function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
 
     """
     First version: not optimized, goal is to make this as quick and easy as
@@ -14,8 +14,10 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64
     kmax: maximum hyperedges size in H
     Ω: group interation function (e.g., planted partition)
     """
+
+    kmin, kmax = minimum(keys(H.E)), maximum(keys(H.E))
+
     obj = 0
-    # Is there any reason to start with l = 1 sized hyperedges?
     for l = kmin:kmax
         El = H.E[l]
         lfac = factorial(l)
@@ -29,8 +31,7 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64
     return obj
 end
 
-function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int64,1},kmax::Int64, kmin::Int64,
-    Om::Vector{Dict})
+function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int64,1}, Om::Vector{Dict})
     """
     Second version: store penalties first,
     and more importantly, a faster way to compute Ω(z_e)

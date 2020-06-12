@@ -2,15 +2,17 @@ include("utils.jl")
 include("cut.jl")
 include("vol.jl")
 
-function modularity(H::hypergraph, Z::Array{Int64, 1}, kmax::Int64, Ω;  bigInt=true)
+function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
 
-    cut = first_term_eval(H, Z, Ω, kmax)
+    kmax = maximum(keys(H.E))
+
+    cut = first_term_eval(H, Z, Ω)
     vol = second_term_eval(H, Z, Ω, kmax, bigInt)
     return cut - vol
 end
 
-function L(H, Z, Ω, kmax, bigInt=true)
-    Q = modularity(H, Z, kmax, Ω; bigInt=bigInt)   
+function L(H, Z, Ω; bigInt=true)
+    Q = modularity(H, Z, Ω; bigInt=bigInt)   
 
     D = computeDegrees(H)
 
@@ -22,11 +24,10 @@ function L(H, Z, Ω, kmax, bigInt=true)
     for ℓ = 1:kmax
         El = H.E[ℓ]
         for edge in keys(El)
-
             c = counting_coefficient(edge)
             weight = El[edge]
             K += c*weight*sum(logD[edge])
-            C -= c*log(factorial(weight)) # can maybe improve on performance here?
+            C -= log(factorial(weight)) # can maybe improve on performance here?
         end
     end
     return Q, K, C
@@ -52,35 +53,36 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
             
             m = get(Ek, S, 0)
 
-            L += c*log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
+            L += log(poisson_pdf(m, c*prod(θ)*Ω(z; mode="group")))
         end
     end
     return(L)
 end
 
-function logLikelihoodNaive(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
-    """
-    Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-    This function just iterates over all possible tuples in all permutations -- used only for testing purposes. 
-    """
-    n = length(Z)
-    L = 0.0
-    D = 1.0*H.D
+# function logLikelihoodNaive(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
+#     """
+#     Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
+#     This function just iterates over all possible tuples in all permutations -- used only for testing purposes. 
+#     """
+#     n = length(Z)
+#     L = 0.0
+#     D = 1.0*H.D
 
-    for k in keys(H.E)  
-        T = Iterators.product((1:n for i = 1:k)...)
-        Ek = H.E[k]  
+#     for k in keys(H.E)  
+#         T = Iterators.product((1:n for i = 1:k)...)
+#         Ek = H.E[k]  
 
-        for s in T
-            S = collect(s)
-            S = sort(S)
+#         for s in T
+#             S = collect(s)
+#             # S = sort(S)
+#             c = counting_coefficient(S)
 
-            z = Z[S]
-            θ = D[S]
+#             z = Z[S]
+#             θ = D[S]
 
-            m = get(Ek, S, 0)
-            L += log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
-        end
-    end
-    return(L)
-end
+#             m = get(Ek, S, 0)
+#             L += log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
+#         end
+#     end
+#     return(L)
+# end
