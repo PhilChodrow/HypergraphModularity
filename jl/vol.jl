@@ -22,13 +22,37 @@ function evalSumNaive(p, Z, D)
     T = Iterators.product((1:n for i = 1:r)...)
 
     for R in T
-        a = partitionize(R)
+        a = countmap(vec(Z[collect(R)]))
+        a = -sort(-collect(values(a)))
         if a == p
             S += prod(D[collect(R)])
         end
     end
     return(S)
 end
+
+function test_sums(S, Z, D)
+    n = length(Z)
+    r = length(S)
+    s1 = 0
+
+    T = Iterators.product((1:n for i = 1:r)...)
+    for q in T
+        if sort(collect(q)) == S
+            s1 += prod(D[S])
+        end
+    end
+    
+    s2 = 0
+    T = with_replacement_combinations(1:n, r)
+    for q in T
+        if q == S
+            s2 += prod(D[S]) * counting_coefficient(S)
+        end
+    end
+    return(s1, s2)
+end
+
 
 function evalSumsNaive(Z, D, r)
     N = Dict()
