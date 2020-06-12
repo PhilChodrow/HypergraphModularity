@@ -82,6 +82,9 @@ function computeDegrees(E::Dict{Integer, Dict})
             end
         end
     end
+    for i = 1:maximum(keys(d)) # fill in zeros 
+        d[i] = get(d, i, 0)
+    end
     return([d[i] for i = 1:length(d)])
 end
 
