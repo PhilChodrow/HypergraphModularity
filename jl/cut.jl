@@ -20,7 +20,7 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64
         El = H.E[l]
         lfac = factorial(l)
         for edge in keys(El)
-            perms = count_coefficient(edge)
+            perms = counting_coefficient(edge)
             clus_e = c[edge]    # set of clusters
             weight = El[edge]
             obj   += perms*weight*log(Ω(clus_e; mode="group"))
