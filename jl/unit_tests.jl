@@ -10,10 +10,9 @@ include("objectives.jl")
 
 Random.seed!(4321)
 
-@testset "permutation coefficients" begin
+@testset "permutations" begin
     edge = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
     perm1 = counting_coefficient(edge)
-
 
     l = length(edge)
     p = cvec_2_pvec(edge, l)
@@ -27,9 +26,6 @@ Random.seed!(4321)
     @test perm1 == perm2
 end
 
-
-
-
 # let's make some simple, fake data
 Z = [1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5] # group partition
 D = [3, 4, 2, 5, 6, 4, 3, 2, 5, 2, 2]; # degree sequence
@@ -38,7 +34,21 @@ r = 3
 
 @testset "vol" begin
 
+    s1, s2 = test_sums([1, 2, 3, 4], Z, D)
+    @test s1 == s2
+    s1, s2 = test_sums([2, 2, 3, 4, 4, 5], Z, D)
+    @test s1 == s2
+
     all_partitions = collect(Iterators.flatten([(partitions(i,j)) for i =1:r for j=1:i]))
+
+
+    p = [3, 1, 1]
+
+    s1 = evalSumNaive(p, Z, D)
+    s2 = evalSumNaive2(p, Z, D)
+
+    @test s1 == s2
+
 
     # test that the naive and product-of-volumes formulae give the same results
 
@@ -87,7 +97,6 @@ r = 3
                 return all([N[p] == N[p] for p in keys(M)])
             end     
         end;
-
         @test testUpdates(Z, D, 5, 100, true, true)
     end
 end
@@ -100,7 +109,7 @@ n = 10
 Z = rand(1:5, n)
 ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
 μ = mean(ϑ)
-fk = k->(1.4*μ*k)^(-k)
+fk = k->(2.4*μ*k)^(-k)
 fp = harmonicMean
 Ω  = (z; mode)->Ω_partition(z, fp, fk; mode=mode)
 
@@ -114,42 +123,35 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
     
     kmin = 1    
 
-    cut1 = first_term_eval(H,Z,kmax,kmin,Ω)
+    cut1 = first_term_eval(H,Z,Ω)
 
     ff = p->fp(p)*fk(sum(p))
     Om = build_omega(kmax,ff)
 
     Hyp, w = hyperedge_formatting(H)
 
-    cut2 = first_term_v2(Hyp,w,Z,kmax,kmin,Om)
+    cut2 = first_term_v2(Hyp,w,Z,Om)
 
     @test cut1 ≈ cut2
 end
 
-@testset "likelihood" begin
-    trueLogLik = logLikelihood(H, Z, Ω)
-    naiveLogLik = logLikelihoodNaive(H, Z, Ω)
-    @test trueLogLik ≈ naiveLogLik
-end
-
-
-
-# @testset "modularity" begin
-
-    
-
-#     # compute the true LL
+# @testset "likelihood" begin
 #     trueLogLik = logLikelihood(H, Z, Ω)
+#     naiveLogLik = logLikelihoodNaive(H, Z, Ω)
+#     @test_broken trueLogLik ≈ naiveLogLik
+# end
 
-#     # compute the three terms including modularity and check for near equality. 
 
-#     Q, K, C = L(H, Z, Ω, kmax, false)
+@testset "modularity" begin
 
-#     println(Q)
-#     println(K)
-#     println(C)
+    # compute the true LL
+    trueLogLik = logLikelihood(H, Z, Ω)
 
-#     @test Q + K + C ≈ trueLogLik
+    # compute the three terms including modularity and check for near equality. 
+
+    Q, K, R = L(H, Z, Ω; bigInt=false)
+
+    @test Q + K + R ≈ trueLogLik
 
     
-# end
+end

@@ -29,8 +29,8 @@ function sampleEdge(S::Array{Int64,1}, Z::Array{Int64,1}, ϑ::Array{Float64,1}, 
     """
     z = Z[S]
     θ = ϑ[S]
-    # combinatorial factor associated with repeated indices
     
+    # combinatorial factor associated with repeated indices. Equivalent to sampling a separate Poisson for each of the c distinct permutations of the node labels S
     c = counting_coefficient(S)    
     X = Poisson(prod(θ)*Ω(z;mode="group")*c)
     return(rand(X))

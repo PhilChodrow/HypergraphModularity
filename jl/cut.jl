@@ -22,7 +22,8 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
         El = H.E[l]
         lfac = factorial(l)
         for edge in keys(El)
-            perms = counting_coefficient(edge)
+            # perms = counting_coefficient(edge)
+            perms = 1
             clus_e = c[edge]    # set of clusters
             weight = El[edge]
             obj   += perms*weight*log(Ω(clus_e; mode="group"))
@@ -39,7 +40,7 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
     c: array storing cluster indices; c[i] is the cluster node i is in
     kmax: maximum hyperedges size in H
     Om: weights for group interation function
-        Om[i][p] = Ω value for partition vector p, hyperedg size i.
+        Om[i][p] = Ω value for partition vector p, hyperedge size i.
 
     e.g., given hyperedge size function fk and partition function fp, can use:
         ff = p->fp(p)*fk(sum(p))
@@ -55,11 +56,9 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
 
         p = cvec_2_pvec(clus_e,l)
 
-        perms = counting_coefficient(edge)
-
         om_z = Om[l][p]
 
-        obj += perms*w[i]*log(om_z)
+        obj += w[i]*log(om_z)
     end
     return obj
 end

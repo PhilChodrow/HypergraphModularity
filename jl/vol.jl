@@ -22,13 +22,26 @@ function evalSumNaive(p, Z, D)
     T = Iterators.product((1:n for i = 1:r)...)
 
     for R in T
-        a = countmap(vec(Z[collect(R)]))
-        a = -sort(-collect(values(a)))
-        if a == p
+        if partitionize(Z[collect(R)]) == p
             S += prod(D[collect(R)])
         end
     end
     return(S)
+end
+
+function evalSumNaive2(p, Z, D)
+    n = length(Z)
+    r = sum(p)
+    s = 0
+
+    T = with_replacement_combinations(1:n, r)
+
+    for S in T
+        if partitionize(Z[S]) == p
+            s += prod(D[S])*counting_coefficient(S)
+        end
+    end
+    return(s)
 end
 
 function test_sums(S, Z, D)
@@ -135,6 +148,7 @@ function evalConstants(r)
     C = Dict{Array{Integer, 1}, Integer}()
     for i = 1:r, j = 1:i, p in partitions(i, j)
         orderCorrection = prod([factorial(c) for c in values(countmap(p))])
+        # orderCorrection = 1
         C[p] = multinomial(p...) ÷ orderCorrection
     end
     return(C)
@@ -219,7 +233,7 @@ function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
     return(V + ΔV, μ + Δμ, M̃)
 end
 
-function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
+function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt=true)
     """
     Naive implementation, computes sums from scratch. 
     H: hypergraph
@@ -229,9 +243,13 @@ function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
     """
 
     obj = 0
-
     kmax = maximum(keys(H.E))
-    V, μ, M = evalSums(Z, H, kmax, bigInt)
+
+    if ℓ == 0
+        ℓ = maximum(Z)
+    end
+
+    V, μ, M = evalSums(Z, H, ℓ , bigInt)
     for p in keys(M)
         obj += Ω(p, mode = "partition")*M[p]
     end

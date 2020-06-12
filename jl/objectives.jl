@@ -7,7 +7,8 @@ function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
     kmax = maximum(keys(H.E))
 
     cut = first_term_eval(H, Z, Ω)
-    vol = second_term_eval(H, Z, Ω, kmax, bigInt)
+    vol = second_term_eval(H, Z, Ω; bigInt = bigInt)
+    
     return cut - vol
 end
 
@@ -16,9 +17,8 @@ function L(H, Z, Ω; bigInt=true)
 
     D = computeDegrees(H)
 
-    K = 0
-    C = 0
-
+    K, C = 0, 0
+    
     logD = log.(D)
 
     for ℓ = 1:kmax
@@ -26,7 +26,7 @@ function L(H, Z, Ω; bigInt=true)
         for edge in keys(El)
             c = counting_coefficient(edge)
             weight = El[edge]
-            K += c*weight*sum(logD[edge])
+            K += weight*(log(c) + sum(logD[edge]))
             C -= log(factorial(weight)) # can maybe improve on performance here?
         end
     end
@@ -39,7 +39,7 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
     NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases
     """
     n = length(Z)
-    L = 0.0
+    L, C, V, K, R = 0.0, 0.0, 0.0, 0.0, 0.0
     D = 1.0*H.D
 
     for k in keys(H.E)  
@@ -54,8 +54,14 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
             m = get(Ek, S, 0)
 
             L += log(poisson_pdf(m, c*prod(θ)*Ω(z; mode="group")))
+
+            K += m*(log(c) + sum(log.(θ)))
+            V += c*prod(θ)*Ω(z; mode="group")
+            R += log(factorial(m)) # think about this
+            C += m*log(Ω(z; mode="group"))        
         end
     end
+    
     return(L)
 end
 
