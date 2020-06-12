@@ -10,6 +10,25 @@ include("objectives.jl")
 
 Random.seed!(4321)
 
+@testset "permutation coefficients" begin
+    edge = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+    perm1 = counting_coefficient(edge)
+
+
+    l = length(edge)
+    p = cvec_2_pvec(edge, l)
+    lfac = factorial(l)
+    perm2 = lfac  # adjusting for all permutations
+    pe = cvec_2_pvec(edge,l)
+    for i = 1:length(pe)
+        perm2 /= factorial(pe[i])
+    end
+
+    @test perm1 == perm2
+end
+
+
+
 
 # let's make some simple, fake data
 Z = [1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5] # group partition
@@ -89,8 +108,8 @@ kmax = 4
 
 H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 
-
 # test for incremental updates in the cut term (first term of the modularity). NATE, plug in here
+
 @testset "cut" begin
     
     kmin = 1    
@@ -107,11 +126,10 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
     @test cut1 ≈ cut2
 end
 
-
 @testset "likelihood" begin
     trueLogLik = logLikelihood(H, Z, Ω)
     naiveLogLik = logLikelihoodNaive(H, Z, Ω)
-    @test_broken trueLogLik ≈ naiveLogLik
+    @test trueLogLik ≈ naiveLogLik
 end
 
 

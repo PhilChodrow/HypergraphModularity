@@ -1,6 +1,8 @@
 using Combinatorics
 include("omega.jl")
 include("HSBM.jl")
+include("utils.jl")
+
 
 function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64, Ω)
 
@@ -18,11 +20,7 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1},kmax::Int64,kmin::Int64
         El = H.E[l]
         lfac = factorial(l)
         for edge in keys(El)
-            perms = lfac  # adjusting for all permutations
-            pe = cvec_2_pvec(edge,l)
-            for i = 1:length(pe)
-                perms /= factorial(pe[i])
-            end
+            perms = count_coefficient(edge)
             clus_e = c[edge]    # set of clusters
             weight = El[edge]
             obj   += perms*weight*log(Ω(clus_e; mode="group"))
@@ -56,11 +54,7 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
 
         p = cvec_2_pvec(clus_e,l)
 
-        perms = factorial(l)     # adjusting for how many times this is counted
-        pe = cvec_2_pvec(edge,l)
-        for i = 1:length(pe)
-            perms /= factorial(pe[i])
-        end
+        perms = counting_coefficient(edge)
 
         om_z = Om[l][p]
 
