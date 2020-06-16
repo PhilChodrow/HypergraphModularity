@@ -26,8 +26,8 @@ function L(H, Z, Ω; bigInt=true)
         for edge in keys(El)
             c = counting_coefficient(edge)
             weight = El[edge]
-            K += weight*(log(c) + sum(logD[edge]))
-            C -= log(factorial(weight)) # can maybe improve on performance here?
+            K += weight*sum(logD[edge])
+            C += weight*log(c) - log(factorial(weight)) # can maybe improve on performance here?
         end
     end
     return Q, K, C
