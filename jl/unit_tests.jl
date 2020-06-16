@@ -7,6 +7,7 @@ include("cut.jl")
 include("omega.jl")
 include("HSBM.jl")
 include("objectives.jl")
+include("test_funs.jl")
 
 Random.seed!(4321)
 
@@ -152,6 +153,4 @@ end
     Q, K, R = L(H, Z, Ω; bigInt=false)
 
     @test Q + K + R ≈ trueLogLik
-
-    
 end

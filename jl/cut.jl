@@ -3,7 +3,6 @@ include("omega.jl")
 include("HSBM.jl")
 include("utils.jl")
 
-
 function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
 
     """
