@@ -84,7 +84,6 @@ function build_omega(kmax,fp)
         end
         push!(Om,ioms)
     end
-
     return Om
 end
 

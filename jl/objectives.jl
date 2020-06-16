@@ -2,7 +2,15 @@ include("utils.jl")
 include("cut.jl")
 include("vol.jl")
 
-function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
+function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
+    """
+    Compute the modularity of a partition Z in a hypergraph H with interaction function Ω. 
+    H::hypergraph: the input hypergraph 
+    Z::array{Int64, 1}: array of group labels.  
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended. 
+    return: Q::Float, the modularity term in the HSBM likelihood for H, Z, and Ω. 
+    """
 
     kmax = maximum(keys(H.E))
 
@@ -12,7 +20,15 @@ function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt=true)
     return cut - vol
 end
 
-function L(H, Z, Ω; bigInt=true)
+function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
+    """
+    Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω. 
+    H::hypergraph: the input hypergraph 
+    Z::array{Int64, 1}: array of group labels.  
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended. 
+    return: L::Float, the log-likelihood of H with parameters Z and Ω under the HSBM model. 
+    """
     Q = modularity(H, Z, Ω; bigInt=bigInt)   
 
     D = computeDegrees(H)
@@ -35,8 +51,12 @@ end
 
 function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
     """
-    Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-    NOTE: this is a VERY slow function that should be spead up by orders of magnitude when Ω falls into important special cases
+    Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω. 
+    This function is VERY slow and should generally only be used for testing purposes. 
+    H::hypergraph: the input hypergraph 
+    Z::array{Int64, 1}: array of group labels.  
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    return: L::Float, the log-likelihood of H with parameters Z and Ω under the HSBM model. 
     """
     n = length(Z)
     L, C, V, K, R = 0.0, 0.0, 0.0, 0.0, 0.0
@@ -64,31 +84,3 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
     
     return(L)
 end
-
-# function logLikelihoodNaive(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
-#     """
-#     Given a hypergraph, return the HSBM likelihood using labels Z, degree parameters ϑ, and group intensities Ω.
-#     This function just iterates over all possible tuples in all permutations -- used only for testing purposes. 
-#     """
-#     n = length(Z)
-#     L = 0.0
-#     D = 1.0*H.D
-
-#     for k in keys(H.E)  
-#         T = Iterators.product((1:n for i = 1:k)...)
-#         Ek = H.E[k]  
-
-#         for s in T
-#             S = collect(s)
-#             # S = sort(S)
-#             c = counting_coefficient(S)
-
-#             z = Z[S]
-#             θ = D[S]
-
-#             m = get(Ek, S, 0)
-#             L += log(poisson_pdf(m, prod(θ)*Ω(z; mode="group")))
-#         end
-#     end
-#     return(L)
-# end
