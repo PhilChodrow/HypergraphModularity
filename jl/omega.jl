@@ -29,25 +29,12 @@ function harmonicMean(p)
     prod(p)^(1/k)
 end
 
-
-function sizePartition(p, fp=harmonicMean, fk=k->1)
-    k = sum(p)
-    return fk(k)*fp(p)
-end
-
-function Ω_partition(x, fp, fk; mode="group")
-    if mode == "group"
-        p = partitionize(x)
-    elseif mode == "partition"
-        p = x
-    end
-    return sizePartition(p, fp, fk)
-end
-
 function ΩFromDict(D)
     """
-    D: a Dict() in which the keys are either (a)
-    only recommended for use with generalized partition-based models
+    D: a Dict() in which the keys are partition vectors. 
+    returns: Ω, an interaction function which when evaluated on p returns D[p] if p is a partition vector, mode = "partition" or D[partitionize(p)] if p is a list of group labels (mode = "group"). 
+    Only recommended for use with generalized partition-based models. 
+    Could be generalized but hasn't been yet. 
     """
     function Ω(p; mode="group")
         if mode == "group"

@@ -141,20 +141,14 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
     @test cut1 ≈ cut2
 end
 
-# @testset "likelihood" begin
-#     trueLogLik = logLikelihood(H, Z, Ω)
-#     naiveLogLik = logLikelihoodNaive(H, Z, Ω)
-#     @test_broken trueLogLik ≈ naiveLogLik
-# end
-
 
 @testset "modularity" begin
 
     # compute the true LL
     trueLogLik = logLikelihood(H, Z, Ω)
 
-    # compute the three terms including modularity and check for near equality. 
-
+    # compute the three terms including modularity and check for near equality with the true likelihood
+    
     Q, K, R = L(H, Z, Ω; bigInt=false)
 
     @test Q + K + R ≈ trueLogLik
