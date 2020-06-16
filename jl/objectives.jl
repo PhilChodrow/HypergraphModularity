@@ -29,19 +29,14 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended. 
     return: L::Float, the log-likelihood of H with parameters Z and Ω under the HSBM model. 
     """
-    Q = modularity(H, Z, Ω; bigInt=bigInt)  
-    
+    Q = modularity(H, Z, Ω; bigInt=bigInt)   
 
-    # the remainder of the code focuses on computing the other terms in the likelihood. 
-
-
-    # initialization prior to main loop
     D = computeDegrees(H)
+
     K, C = 0, 0
     
     logD = log.(D)
 
-    # because of some convenient math simplifications, we are able to loop only through edges that exist, not over possible edges. 
     for ℓ = 1:kmax
         El = H.E[ℓ]
         for edge in keys(El)
@@ -86,5 +81,6 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
             C += m*log(Ω(z; mode="group"))        
         end
     end
+    
     return(L)
 end
