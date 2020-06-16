@@ -102,19 +102,24 @@ r = 3
     end
 end
 
-
-
-
 # sample from a small HSBM
 n = 10
 Z = rand(1:5, n)
 ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
 μ = mean(ϑ)
-fk = k->(2.4*μ*k)^(-k)
-fp = harmonicMean
-Ω  = (z; mode)->Ω_partition(z, fp, fk; mode=mode)
 
 kmax = 4
+
+fk = k->(2.4*μ*k)^(-k)
+fp = harmonicMean
+
+Ω_dict = Dict()
+
+for k = 1:kmax, p in partitions(k)
+    Ω_dict[p] = fk(sum(p))*fp(p)
+end
+
+Ω = ΩFromDict(Ω_dict)
 
 H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 

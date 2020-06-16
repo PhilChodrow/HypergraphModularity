@@ -43,3 +43,20 @@ function Ω_partition(x, fp, fk; mode="group")
     end
     return sizePartition(p, fp, fk)
 end
+
+function ΩFromDict(D)
+    """
+    D: a Dict() in which the keys are either (a)
+    only recommended for use with generalized partition-based models
+    """
+    function Ω(p; mode="group")
+        if mode == "group"
+            return D[partitionize(p)]
+        elseif mode == "partition"
+            return D[p]
+        end
+    end
+    return Ω
+end
+
+
