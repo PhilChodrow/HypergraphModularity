@@ -12,7 +12,9 @@ include("HSBM.jl")
 
 function correctOvercounting(M::Dict, p::Array)
     """
-    Utility function: second term in the recurrence in the notes
+    Utility function: second term in the recurrence in the notes. 
+    M::Dict{Array{Integer, 1}, Integer}, the current Dict of constants being updated. 
+    p::Array{Integer, 1}, the partition for which we are currently computing the new constant. 
     """
     pk = p[end]
     S = 0
@@ -25,6 +27,14 @@ function correctOvercounting(M::Dict, p::Array)
 end
 
 function computeMoments(Z::Array, D::Array, r, ℓ=0)
+    """
+    Compute the volumes of groups in a hypergraph and the 1st through rth moments of those volumes. 
+    Z::Array{Integer, 1}, the group labels. 
+    D::Array{Integer, 1}, the degrees of nodes
+    r::Integer, the size of the largest moment to compute (corresponds to kmax, the size of the largest hyperedge)
+    ℓ::Integer, the number of groups. Defaults to the maximum integer value of Z
+    return: V::Array{Integer, 1} the vector of volumes (one for each group) and μ::Array{Integer, 1} the vector of moments (1 through r)
+    """
     if ℓ==0
         ℓ=maximum(Z)
     end
@@ -35,6 +45,11 @@ function computeMoments(Z::Array, D::Array, r, ℓ=0)
 end
 
 function evalConstants(r)
+    """
+    Evaluate the combinatorial constants which appear as multipliers to the constants computed in evalSums. 
+    r::Integer, the largest partition size to evaluate. Corresponds to kmax, the size of the largest hyperedge. 
+    return C::Dict{Array{Integer, 1}, Integer}, a Dict() of constants, one for each partition p. 
+    """
     C = Dict{Array{Integer, 1}, Integer}()
     for i = 1:r, j = 1:i, p in partitions(i, j)
         orderCorrection = prod([factorial(c) for c in values(countmap(p))])
@@ -46,9 +61,13 @@ end;
 
 function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     """
-    Z: an Array of integer group labels
-    D: an Array of degrees
-    r: the largest hyperedge size to compute
+    Compute the sums required by the volume term of the modularity using a fast recursive method. 
+    Z::Array{Integer, 1}, an Array of integer group labels
+    D::Array{Integer, 1}, an Array of degrees
+    r::Integer, the size of the largest partition to compute a constant for. Should correspond to kmax, the size of the largest hyperedge in an observed hypergraph. 
+    constants::Bool, whether return the results multiplied by the combinatorial constants given by evalConstants(). Should be true in user-facing contexts and false when efficiently evaluating increments within algorithms. 
+    ℓ::Integer the number of groups. Defaults to the maximum integer value of Z. 
+    bigInt::Bool, whether to convert the degree sequence D into Array{bigInt,1} before processing. This is recommended for instances of even modest size, since the sums involved can become very large. Setting this parameter to false may produce faster runtimes and smaller memory allocations at the cost of silent errors due to integer overflow. 
     """
 
     if bigInt
@@ -73,16 +92,14 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     return V, μ, M
 end
 
-
-# Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
-
-function evalSums(Z::Array, D::Array, r, ℓ=0, bigInt=true)
-    return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
-end
-
-function evalSums(Z::Array, H::hypergraph, ℓ=0, bigInt=true)
+function evalSums(Z::Array, H::hypergraph, ℓ=0; bigInt=true)
+    """
+    An additional method for evalSums to operate on an object of type hypergraph. 
+    H::hypergraph, the hypergraph on which to compute. 
+    For other parameters and return values, see evalSums() above. 
+    """
     r = maximum(keys(H.E))
-    return evalSums(Z, H.D, r, ℓ, bigInt)
+    return evalSums(Z, H.D, r; ℓ=ℓ, bigInt=bigInt)
 end
 
 # ------------------------------------------------------------------------------
@@ -91,9 +108,14 @@ end
 
 function momentIncrements(V, μ, i, t, D, Z)
     """
-    update V and μ in place by moving node i 
-    from its current group to group t
-    while returning the increment in μ for subsequent computation
+    Compute the increment vectors in the volumes V and volume-moments μ associated with moving node i from its current group to group t. 
+    V: an array of volumes associated with each group 
+    μ: an array of moments of V
+    i: the node to move
+    t: the group into which node i will be moved
+    D: the degree sequence of the hypergraph on which we compute
+    Z: the current grouping vector
+    return: ΔV and Δμ, the increments in V and μ
     """
         
     ΔV = zero(V)
@@ -109,7 +131,17 @@ function momentIncrements(V, μ, i, t, D, Z)
 end
 
 function increments(V, μ, M, i, t, D, Z)
-    
+    """
+    compute increments in the sums M using the recursion formula from the main document. 
+    V: an array of volumes associated with each group 
+    μ: an array of moments of V
+    M: the current Dict() of sums to be updated
+    i: the node to move
+    t: the group into which node i will be moved
+    D: the degree sequence of the hypergraph on which we compute
+    Z: the current grouping vector
+    return ΔV, Δμ, ΔM: the increments in V, μ, and M
+    """
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
@@ -123,6 +155,14 @@ function increments(V, μ, M, i, t, D, Z)
 end
 
 function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+    """
+    Add computed increments to the vector of volumes V, volume-moments μ, and sums M, obtaining updated versions. 
+    V: an array of volumes associated with each group 
+    μ: an array of moments of V
+    M: the current Dict() of sums to be updated
+    ΔV, Δμ, ΔM: increments in these vectors as computed by increments()
+    return: V, μ, M, updated versions of each of the first three inputs. 
+    """
     M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
     return(V + ΔV, μ + Δμ, M̃)
 end
@@ -133,11 +173,12 @@ end
 
 function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt=true)
     """
-    Naive implementation, computes sums from scratch. 
-    H: hypergraph
-    Z: array storing cluster indices; c[i] is the cluster node i is in
-    kmax: maximum hyperedges size in H
-    Ω: group interation function (e.g., planted partition). Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors. 
+    Compute the volume (second) term in hypergraph modularity. 
+    H::hypergraph, the hypergraph on which to compute. 
+    Z::Array{Integer, 1}, the vector of group labels. 
+    Ω, the group interaction function. Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors. 
+    ℓ::Integer, the number of groups. Defaults to the maximum of the entries of Z. 
+    bigInt::Bool, whether to convert the degrees to bigInts when performing summation. Will silently produce integer overflow errors on even modestly-sized instances. Only set to false if you KNOW that this won't be an issue. 
     """
 
     obj = 0
@@ -147,7 +188,7 @@ function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt
         ℓ = maximum(Z)
     end
 
-    V, μ, M = evalSums(Z, H, ℓ , bigInt)
+    V, μ, M = evalSums(Z, H, ℓ; bigInt=true)
     for p in keys(M)
         obj += Ω(p, mode = "partition")*M[p]
     end

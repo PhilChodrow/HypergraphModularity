@@ -45,5 +45,3 @@ function ΩFromDict(D)
     end
     return Ω
 end
-
-
