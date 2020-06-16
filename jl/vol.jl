@@ -6,6 +6,10 @@ include("HSBM.jl")
 
 # Compute a complete set of sums using a fast recursive algorithm based on a simple combinatorial relationship between the required sums. 
 
+# ------------------------------------------------------------------------------
+# COMPUTATION OF SUMS FROM SCRATCH
+# ------------------------------------------------------------------------------
+
 function correctOvercounting(M::Dict, p::Array)
     """
     Utility function: second term in the recurrence in the notes
@@ -81,6 +85,10 @@ function evalSums(Z::Array, H::hypergraph, ℓ=0, bigInt=true)
     return evalSums(Z, H.D, r, ℓ, bigInt)
 end
 
+# ------------------------------------------------------------------------------
+# INCREMENTS
+# ------------------------------------------------------------------------------
+
 function momentIncrements(V, μ, i, t, D, Z)
     """
     update V and μ in place by moving node i 
@@ -118,6 +126,10 @@ function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
     M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
     return(V + ΔV, μ + Δμ, M̃)
 end
+
+# ------------------------------------------------------------------------------
+# COMPLETE COMPUTATION OF SECOND (VOLUME) TERM IN MODULARITY
+# ------------------------------------------------------------------------------
 
 function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt=true)
     """
