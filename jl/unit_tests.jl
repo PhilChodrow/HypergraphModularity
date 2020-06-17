@@ -16,10 +16,10 @@ Random.seed!(4321)
     perm1 = counting_coefficient(edge)
 
     l = length(edge)
-    p = cvec_2_pvec(edge, l)
+    p = partitionize(edge)
     lfac = factorial(l)
     perm2 = lfac  # adjusting for all permutations
-    pe = cvec_2_pvec(edge,l)
+    pe = partitionize(edge)
     for i = 1:length(pe)
         perm2 /= factorial(pe[i])
     end
@@ -119,7 +119,7 @@ for k = 1:kmax, p in partitions(k)
     Ω_dict[p] = fk(sum(p))*fp(p)
 end
 
-Ω = ΩFromDict(Ω_dict)
+Ω = buildΩ(Ω_dict; by_size=true)
 
 H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 
@@ -131,12 +131,12 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 
     cut1 = first_term_eval(H,Z,Ω)
 
-    ff = p->fp(p)*fk(sum(p))
-    Om = build_omega(kmax,ff)
+    # ff = p->fp(p)*fk(sum(p))
+    # Om = build_omega(kmax,ff)
 
     Hyp, w = hyperedge_formatting(H)
 
-    cut2 = first_term_v2(Hyp,w,Z,Om)
+    cut2 = first_term_v2(Hyp,w,Z,Ω)
 
     @test cut1 ≈ cut2
 end
