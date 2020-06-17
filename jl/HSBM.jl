@@ -110,8 +110,6 @@ function sampleSBM(args...;kwargs...)
     return(H)
 end
 
-
-
 function countEdges(H::hypergraph)
     """
     count the number of edges in H

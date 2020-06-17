@@ -52,38 +52,12 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
 
         p = partitionize(clus_e)
 
-        om_z = Ω(p; mode="partition", k = l)   
+        om_z = Ω(p; mode="partition", k = l) 
 
         obj += w[i]*log(om_z)
     end
     return obj
 end
-
-
-# """
-# Rather than recomputing the penalty associated with each type of partition
-# vector every time we see it, we can store penalties.
-
-# Om[i][p] will return the Ω value for partition vector p for hyperedge size i.
-
-# kmax = maximum hyperedge size
-# fp = function for penalty associated with this partition
-# """
-# function build_omega(kmax,fp)
-
-#     # each hyperedge size holds its own set of penalties
-#     Om = Vector{Dict}()
-#     for i = 1:kmax
-#         ioms = Dict()
-
-#         # generate all integer partitions of i
-#         for part in partitions(i)
-#             ioms[part] = fp(part)
-#         end
-#         push!(Om,ioms)
-#     end
-#     return Om
-# end
 
 """
 Convert a hypergraph from old to new format.

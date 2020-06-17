@@ -6,25 +6,9 @@ include("utils.jl")
 Throughout the docstrings, n gives the number of nodes. 
 """
 
-export plantedPartition, groupSizePartition
+export plantedPartition
 
-# test if all elements are equal, from 
-# https://stackoverflow.com/questions/47564825/check-if-all-the-elements-of-a-julia-array-are-equal/47578613
-
-δ(x) = all(y->y==x[1],x)
-
-function plantedPartition(z, ω0, ω1, fk=k->1)
-    """
-    z: an array of nonnegative integers
-    ω0: nonnegative float
-    ω1: nonnegative float
-    RETURN: ω1 if all entries of z are equal and ω0 otherwise
-    """
-    k = length(z)
-    fk(k)*(ω0 + (ω1 - ω0)*δ(z))
-end
-
-function harmonicMean(p)
+function harmonicMean(p::Array{T, 1}) where {T<:Integer}
     """
     return the harmonic mean of array p; used for some toy interaction functions. 
     """
@@ -32,7 +16,7 @@ function harmonicMean(p)
     prod(p)^(1/k)
 end
 
-function organize_by_size(Ω_dict)
+function organize_by_size(Ω_dict::Dict{Any, Any})
     """
     Given a Dict() in which keys are partitions, returns a Vector{Dict{Array{Integer}, Any}}() in which the kth entry is the Dict() of partitions and values of fixed size. Can be used to obtain better performance. 
     """
@@ -44,7 +28,7 @@ function organize_by_size(Ω_dict)
     return Om
 end
 
-function buildΩ(Ω_dict; by_size=true)
+function buildΩ(Ω_dict::Dict{Any, Any}; by_size=true)
     """
     D: a Dict() in which the keys are partition vectors. 
     returns: Ω, an interaction function which when evaluated on p returns D[p] if p is a partition vector, mode = "partition" or D[partitionize(p)] if p is a list of group labels (mode = "group"). 
@@ -60,8 +44,13 @@ function buildΩ(Ω_dict; by_size=true)
 end
 
 
-function ΩFromDict(Ω_dict)
-    function Ω(p; mode="group")
+function ΩFromDict(Ω_dict::Dict{Any, Any})
+    """
+    Create an partition-based intensity function Ω by passing a Dict() of partition-value pairs. 
+    Ω_dict::Dict{Array{T,1}, Float64} the intensity function dict
+    return:: Ω, an intensity function which, when passed a key from Ω_dict, returns the corresponding value. 
+    """
+    function Ω(p::Array{T,1}; mode="group")::Float64 where {T<:Integer}
         if mode == "group"
             return Ω_dict[partitionize(p)]
         elseif mode == "partition"
@@ -71,9 +60,16 @@ function ΩFromDict(Ω_dict)
     return Ω
 end
 
-function ΩFromDictBySize(Ω_dict)
+function ΩFromDictBySize(Ω_dict::Dict{Any, Any})
+    """
+    Create an partition-based intensity function Ω by passing a Dict() of partition-value pairs. 
+    Behind the scenes, the intensity function returns values from a Vector of Dict{Array{T,1}, Float64}, where T<:Integer. 
+    The kth element of this Vector is the set of partitions of size k. 
+    Ω_dict::Dict{Array{T,1}, Float64} the intensity function dict
+    return:: Ω, an intensity function which, when passed a key from Ω_dict, returns the corresponding value. 
+    """
     Om = organize_by_size(Ω_dict)
-    function Ω(p; mode = "group", k = 0)
+    function Ω(p::Array{T,1}; mode = "group", k = 0)::Float64 where {T<:Integer}
         if mode == "group"
             if k == 0
                 k = length(p)
