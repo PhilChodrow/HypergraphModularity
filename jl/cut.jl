@@ -52,7 +52,7 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
         l = length(edge)
         clus_e = c[edge]    # set of clusters
 
-        p = cvec_2_pvec(clus_e,l)
+        p = partitionize(clus_e)
 
         om_z = Om[l][p]
 
@@ -86,30 +86,6 @@ function build_omega(kmax,fp)
     end
     return Om
 end
-
-"""
-cvec2pvec: cluster vector to partition vector.
-Given an array of integers z, compute the integer partition vector p.
-e.g. input z = [1 2 3 2 2] returns output p = [3 1 1].
-"""
-function cvec_2_pvec(a::Array{Int64,1},k::Int64)
-    # we might be able to do this faster. Come back later.
-    # p = countmap(a)
-    # p = sort(collect(values(p)),rev=true)
-    u = unique(a)
-    d = Dict()
-    lu = length(u)
-    for j = 1:lu
-        d[u[j]] = j
-    end
-    cnts = zeros(Int, lu)
-    for i = 1:k
-        @inbounds x = a[i]
-        @inbounds cnts[d[x]] += 1
-    end
-    return sort(cnts,rev = true)
-end
-
 
 """
 Convert a hypergraph from old to new format.
