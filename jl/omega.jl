@@ -16,7 +16,7 @@ function harmonicMean(p::Array{T, 1}) where {T<:Integer}
     prod(p)^(1/k)
 end
 
-function organize_by_size(Ω_dict::Dict{Any, Any})
+function organize_by_size(Ω_dict::Dict{Array{Int64, 1}, Float64})
     """
     Given a Dict() in which keys are partitions, returns a Vector{Dict{Array{Integer}, Any}}() in which the kth entry is the Dict() of partitions and values of fixed size. Can be used to obtain better performance. 
     """
@@ -28,7 +28,7 @@ function organize_by_size(Ω_dict::Dict{Any, Any})
     return Om
 end
 
-function buildΩ(Ω_dict::Dict{Any, Any}; by_size=true)
+function buildΩ(Ω_dict::Dict{Array{T,1}, Float64}; by_size=true) where {T<:Integer}
     """
     D: a Dict() in which the keys are partition vectors. 
     returns: Ω, an interaction function which when evaluated on p returns D[p] if p is a partition vector, mode = "partition" or D[partitionize(p)] if p is a list of group labels (mode = "group"). 

@@ -113,7 +113,7 @@ kmax = 4
 fk = k->(2.4*μ*k)^(-k)
 fp = harmonicMean
 
-Ω_dict = Dict()
+Ω_dict = Dict{Array{Int64, 1}, Float64}()
 
 for k = 1:kmax, p in partitions(k)
     Ω_dict[p] = fk(sum(p))*fp(p)
