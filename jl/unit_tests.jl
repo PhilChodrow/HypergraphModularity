@@ -62,16 +62,16 @@ r = 3
 
     @testset "increments" begin
         # test for increments in the volume term (the second term of the modularity)
-    
+
         r = 5
 
         function testUpdates(Z, D, r, rounds=100, check=true, bigInt=false)
-            
+
             ℓ = maximum(Z) # number of total groups
-            
+
             V, μ, M = evalSums(Z, D, r; constants=false, bigInt=bigInt);
             C = evalConstants(r)
-            
+
             N = Dict()
 
             for k = 1:rounds
@@ -83,7 +83,7 @@ r = 3
 
                 # increments due to proposal
                 ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z);
-                
+
                 # new quantities (assumes we accept every proposal)
                 V, μ, M = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
 
@@ -96,7 +96,7 @@ r = 3
             if check
                 V̄, μ̄, N̄ = evalSums(Z, D, r; constants=true)
                 return all([N[p] == N[p] for p in keys(M)])
-            end     
+            end
         end;
         @test testUpdates(Z, D, 5, 100, true, true)
     end
@@ -125,9 +125,23 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
 
 # test for incremental updates in the cut term (first term of the modularity). NATE, plug in here
 
+@testset "cutupdate" begin
+
+    Hyp, w = hyperedge_formatting(H)
+    node2edges = EdgeMap(H)
+    I = rand(1:n)
+    J = Z[I] + 1
+    a = NaiveCutDiff(H,Z,I,J,Ω)
+    b = CutDiff(Hyp,w,node2edges,Z,I,J,Ω)
+
+    @test a ≈ b
+
+end
+
+
 @testset "cut" begin
-    
-    kmin = 1    
+
+    kmin = 1
 
     cut1 = first_term_eval(H,Z,Ω)
 
@@ -148,7 +162,7 @@ end
     trueLogLik = logLikelihood(H, Z, Ω)
 
     # compute the three terms including modularity and check for near equality with the true likelihood
-    
+
     Q, K, R = L(H, Z, Ω; bigInt=false)
 
     @test Q + K + R ≈ trueLogLik
