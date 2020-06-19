@@ -44,13 +44,13 @@ function buildΩ(Ω_dict::Dict{Any, Any}; by_size=true)
 end
 
 
-function ΩFromDict(Ω_dict::Dict{Any, Any})
+function ΩFromDict(Ω_dict::Dict{Array{T,1}, Float64}) where {T<:Integer}
     """
     Create an partition-based intensity function Ω by passing a Dict() of partition-value pairs. 
     Ω_dict::Dict{Array{T,1}, Float64} the intensity function dict
     return:: Ω, an intensity function which, when passed a key from Ω_dict, returns the corresponding value. 
     """
-    function Ω(p::Array{T,1}; mode="group")::Float64 where {T<:Integer}
+    function Ω(p::Array{T,1}; mode="group", k=0)::Float64 where {T<:Integer}
         if mode == "group"
             return Ω_dict[partitionize(p)]
         elseif mode == "partition"
@@ -60,7 +60,7 @@ function ΩFromDict(Ω_dict::Dict{Any, Any})
     return Ω
 end
 
-function ΩFromDictBySize(Ω_dict::Dict{Any, Any})
+function ΩFromDictBySize(Ω_dict::Dict{Array{T,1}, Float64}) where {T<:Integer}
     """
     Create an partition-based intensity function Ω by passing a Dict() of partition-value pairs. 
     Behind the scenes, the intensity function returns values from a Vector of Dict{Array{T,1}, Float64}, where T<:Integer. 
@@ -69,7 +69,7 @@ function ΩFromDictBySize(Ω_dict::Dict{Any, Any})
     return:: Ω, an intensity function which, when passed a key from Ω_dict, returns the corresponding value. 
     """
     Om = organize_by_size(Ω_dict)
-    function Ω(p::Array{T,1}; mode = "group", k = 0)::Float64 where {T<:Integer}
+    function Ω(p::Array{T,1}; mode = "group", k=0)::Float64 where {T<:Integer}
         if mode == "group"
             if k == 0
                 k = length(p)
