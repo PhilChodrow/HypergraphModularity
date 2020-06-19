@@ -6,7 +6,6 @@ include("vol.jl")
 
 function estimateΩ(H, Z; method="Piecewise Constant")
     @assert method == "Piecewise Constant"
-    S = evalSums(Z,H)
     T = Dict()
     for k in keys(H.E), e in keys(H.E[k])
         z = Z[e]
@@ -15,7 +14,9 @@ function estimateΩ(H, Z; method="Piecewise Constant")
         m = values(countmap(p))
         T[p] = get(T,p,0) + H.E[k][e]
     end
+
     ω̂ = Dict()
+    S = evalSums(Z,H)[3]
     for p in keys(T)
        ω̂[p] = T[p]/S[p]
     end
