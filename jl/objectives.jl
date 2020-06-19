@@ -12,8 +12,6 @@ function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     return: Q::Float, the modularity term in the HSBM likelihood for H, Z, and Ω. 
     """
 
-    kmax = maximum(keys(H.E))
-
     cut = first_term_eval(H, Z, Ω)
     vol = second_term_eval(H, Z, Ω; bigInt = bigInt)
     
@@ -37,13 +35,17 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     
     logD = log.(D)
 
+    kmax = maximum(keys(H.E))    
+
     for ℓ = 1:kmax
-        El = H.E[ℓ]
-        for edge in keys(El)
-            c = counting_coefficient(edge)
-            weight = El[edge]
-            K += weight*sum(logD[edge])
-            C += weight*log(c) - log(factorial(weight)) # can maybe improve on performance here?
+        if haskey(H.E, ℓ)
+            El = H.E[ℓ]
+            for edge in keys(El)
+                c = counting_coefficient(edge)
+                weight = El[edge]
+                K += weight*sum(logD[edge])
+                C += weight*log(c) - log(factorial(weight)) # can maybe improve on performance here?
+            end
         end
     end
     return Q, K, C
