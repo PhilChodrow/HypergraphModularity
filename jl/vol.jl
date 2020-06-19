@@ -34,10 +34,13 @@ function computeMoments(Z::Array, D::Array, r, ℓ=0)
     return(V, μ)
 end
 
-function evalConstants(r)
+function evalConstants(r; bigInt=true)
     C = Dict{Array{Integer, 1}, Integer}()
     for i = 1:r, j = 1:i, p in partitions(i, j)
-        orderCorrection = prod([factorial(c) for c in values(countmap(p))])
+        orderCorrection =
+            if bigInt prod([factorial(big(c)) for c in values(countmap(p))])
+            else      prod([factorial(c) for c in values(countmap(p))])
+            end
         # orderCorrection = 1
         C[p] = multinomial(p...) ÷ orderCorrection
     end
@@ -65,7 +68,7 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     end
 
     if constants
-        C = evalConstants(r)
+        C = evalConstants(r, bigInt=bigInt)
         for p in keys(M)
             M[p] *= C[p] 
         end
