@@ -4,9 +4,10 @@ include("HSBM.jl")
 include("utils.jl")
 include("hyper_format.jl")
 
+
 function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
     """
-    First version: not optimized, goal is to make this as quick and easy as
+    Not optimized, goal is to make this as quick and easy as
     possible using existing code.
     H: hypergraph
     c: array storing cluster indices; c[i] is the cluster node i is in
@@ -27,7 +28,7 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
     return obj
 end
 
-function first_term_v2(H::Vector{Vector{Int64}},w::Array{Int64,1},c::Array{Int64,1}, Ω)
+function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int64,1}, Ω)
     """
     Second version: store penalties first,
     and more importantly, a faster way to compute Ω(z_e)
@@ -53,7 +54,8 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Int64,1},c::Array{Int64
     return obj
 end
 
-function CutDiff(H::Vector{Vector{Int64}},w::Array{Int64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1}, I::Int64,J::Int64,Ω)
+
+function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1}, I::Int64,J::Int64,Ω)
     """
     CutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.

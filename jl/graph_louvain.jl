@@ -241,7 +241,6 @@ function LambdaLouvain_Step(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64}
     c = collect(1:n)
     @assert(size(w,1) == n)
     improving = true
-    nextclut = n+1
     its = 0
 
     # This stores the graph as an an adjacency list: it's super helpful
