@@ -261,7 +261,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     # Znew[i] = Cj_ind
                     # voldiff = -second_term_eval(H, Znew, Ω; bigInt = bigInt)+second_term_eval(H, Z, Ω; bigInt = bigInt)
 
-                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z,C)
+                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C)
                     cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω)
                     change =  cdiff + voldiff
                 end
@@ -307,7 +307,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 end
 
 
-function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Integer}, Z::Vector{Int64},C::Dict)
+function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict)
 
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z)
