@@ -5,6 +5,15 @@ include("HSBM.jl")
 
 
 # Compute a complete set of sums using a fast recursive algorithm based on a simple combinatorial relationship between the required sums. 
+# This code has been partially optimized for quick updates, which means that it is more complicated that it would need to be if we were just updating from scratch every time. 
+
+# Throughout these functions: 
+# - N::Dict{Array{Int64,1},Int} is a Dict mapping sorted partition vectors to their volume sums. 
+# - M::Dict{Array{Int64,1},Int} is a Dict mapping sorted partition vectors to their *uncorrected* sums. By *uncorrected*, we mean that these sums must be multipled by a set of combinatorial constants prior to including in the modularity function. Each entry of M differs from the corresponding entry of N by a combinatorial constant. 
+# - p::Array{Int64,1} is a partition vector
+# - D::Array{Int64, 1} is the degree sequence of the hypergraph, which does not change. 
+# - Z::Array{Int64, 1} is the group label vector, which does change.  
+# - ℓ::Int64 is the number of groups. 
 
 # ------------------------------------------------------------------------------
 # COMPUTATION OF SUMS FROM SCRATCH
@@ -12,7 +21,11 @@ include("HSBM.jl")
 
 function correctOvercounting(M::Dict, p::Array)
     """
-    Utility function: second term in the recurrence in the notes
+    Internal function: no reason to call this outside of evalSums(). 
+    Computes the second term in the recurrence relation given in the paper. 
+    M::Dict{Array{Int64,1},bigInt}, a Dict mapping sorted partition vectors to their *uncorrected* volume-sums, 
+    p::Array{Int64,1}, the partition for which we are calculating.  
+    returns S::bigInt, the second term in the recurrence relation. 
     """
     pk = p[end]
     S = 0
@@ -25,6 +38,16 @@ function correctOvercounting(M::Dict, p::Array)
 end
 
 function computeMoments(Z::Array, D::Array, r, ℓ=0)
+    """
+    Compute the vectors V of group volumes and μ of volume-moments. 
+    No reason to call this outside of evalSums()
+    Z::Array{Int64,1}, the vector of cluster labels. 
+    D::Array{Int64,1}, the degree sequence
+    r::Int64, the size of the largest hyperedge
+    ℓ::Int64, the number of groups (defaults to maximum(Z))
+    returns V::Array{Int64, 1} the vector of group volumes and μ::Array{Int64,1} of volume-moments. 
+    NOTE: might want to implement bigInts in μ
+    """
     if ℓ==0
         ℓ=maximum(Z)
     end
@@ -35,6 +58,12 @@ function computeMoments(Z::Array, D::Array, r, ℓ=0)
 end
 
 function evalConstants(r; bigInt=true)
+    """
+    Evaluate the combinatorial constants required to convert the "convenient" sums M to the required sums N required for modularity calculations. 
+    r::The size of the largest hyperedge. 
+    bigInt:Bool, whether to use bigInts for this computation, recommended unless the instance is VERY small. 
+    return: C::Dict{Array{Int64, 1}, bigInt} a Dict mapping a partition vector to its associated combinatorial constant. 
+    """
     C = Dict{Array{Integer, 1}, Integer}()
     for i = 1:r, j = 1:i, p in partitions(i, j)
         orderCorrection =
@@ -49,9 +78,13 @@ end;
 
 function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     """
-    Z: an Array of integer group labels
-    D: an Array of degrees
-    r: the largest hyperedge size to compute
+    Z::Array{Int64, 1} the vector of integer group labels
+    D::Array{Int64, 1} the vector of degrees
+    r::Int64, the largest hyperedge size to compute
+    constants::Bool, whether to postmultiply by the combinatorial constants computed by evalConstants prior to returning the values. Choose true if computing modularity directly using the results, choose false if performing incremental updates a la Louvain
+    ℓ::Int64, the number of groups (defaults to maximum(Z))
+    bigInt::Bool, whether to use bigInt conversions for D and Z. Recommended unless the instance is VERY small. 
+    return (V::Array{bigInt,1}, μ::Array{bigInt,1}, M::Dict{Array{Int64,1},bigInt}, with V and μ as described in computeMoments(), and M::Dict{Array{Int64,1},bigInt} is the array of (optionally uncorrected) volume sums. 
     """
 
     if bigInt
@@ -76,7 +109,6 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     return V, μ, M
 end
 
-
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
 
 function evalSums(Z::Array, D::Array, r, ℓ=0, bigInt=true)
@@ -94,9 +126,14 @@ end
 
 function momentIncrements(V, μ, i, t, D, Z)
     """
-    update V and μ in place by moving node i 
-    from its current group to group t
-    while returning the increment in μ for subsequent computation
+    Compute the update for the vectors V and μ associated with moving node i from its current group to group t. 
+    V::Array{Integer, 1}, the vector of group volumes. 
+    μ::Array{Integer, 1}, the vector of volume-moments. 
+    i::Int64, the node to move
+    t::Int64, the proposed new group for node i
+    D::Array{Integer, 1}, the degree vector
+    Z::Array{Integer, 1}, the vector of group labels
+    returns ΔV, Δμ, the required updates in V and μ
     """
         
     ΔV = zero(V)
@@ -112,7 +149,18 @@ function momentIncrements(V, μ, i, t, D, Z)
 end
 
 function increments(V, μ, M, i, t, D, Z)
-    
+    """
+    Compute the update for the vectors V and μ, as well as the uncorrected sums M, associated with moving node i from its current group to group t. 
+    V::Array{Integer, 1}, the vector of group volumes. 
+    μ::Array{Integer, 1}, the vector of volume-moments. 
+    M::Dict{Array{Int64, 1}, bigInt}, the Dict of uncorrected volume sums. 
+    i::Int64, the node to move
+    t::Int64, the proposed new group for node i
+    D::Array{Integer, 1}, the degree vector
+    Z::Array{Integer, 1}, the vector of group labels
+    returns (ΔV, Δμ, ΔM), the required updates in V, μ, and M
+    """
+
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
@@ -126,6 +174,13 @@ function increments(V, μ, M, i, t, D, Z)
 end
 
 function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+    """
+    Add the increments (ΔV, Δμ, ΔM) to (V, μ, M), entrywise in the case of M. 
+    V::Array{Integer, 1}, the vector of group volumes. 
+    μ::Array{Integer, 1}, the vector of volume-moments. 
+    M::Dict{Array{Int64, 1}, bigInt}, the Dict of uncorrected volume sums. 
+    ΔV, Δμ, ΔM: increments in each of the above quantities returned by increments()
+    """
     M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
     return(V + ΔV, μ + Δμ, M̃)
 end
@@ -137,10 +192,11 @@ end
 function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt=true)
     """
     Naive implementation, computes sums from scratch. 
-    H: hypergraph
-    Z: array storing cluster indices; c[i] is the cluster node i is in
-    kmax: maximum hyperedges size in H
+    H::hypergraph
+    Z::Array{Int64, 1}, the group label vector.
+    ℓ::Int64, maximum hyperedges size in H
     Ω: group interation function (e.g., planted partition). Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors. 
+    bigInt::Bool, whether to use bigInt conversions. Strongly recommended unless the instance is VERY small. 
     """
 
     obj = 0
