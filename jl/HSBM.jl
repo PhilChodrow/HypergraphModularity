@@ -14,6 +14,7 @@ The purpose of this module is to define a flexible stochastic blockmodel for hyp
     """
     A very simple hypergraph composite type, designed to hold an edge list E, a degree sequence. 
     """
+    N::Vector{Int64}
     E::Dict{Integer, Dict} 
     D::Array{Integer, 1} = Array{Integer, 1}()
 end
@@ -56,7 +57,8 @@ function sampleEdges(Z::Array{Int64,1}, ϑ::Array{Float64,1}, Ω::Any; kmax::Int
         end
         E[k] = Ek
     end
-    return(E)
+    N = 1:n
+    return(E, N)
 end
 
 function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Integer=3, kmin::Integer=2)
@@ -68,28 +70,40 @@ function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Integer=3, kmin::Integer=
     sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
 end
 
-function computeDegrees(E::Dict{Integer, Dict})
+function computeDegrees(E::Dict{Integer, Dict}, N::Vector{Int64})
     """
     Compute the degree sequence of an edge list. 
     """
-    d = Dict{Integer, Integer}()
-    
+
+    d = zeros(length(N))
     for k in keys(E)
         Ek = E[k]
         for e in keys(Ek)
             for i in e
-                d[i] = get(d, i, 0) + 1
+                d[i] += 1
             end
         end
     end
-    for i = 1:maximum(keys(d)) # fill in zeros 
-        d[i] = get(d, i, 0)
-    end
-    return([d[i] for i = 1:length(d)])
+    return(d)
+
+    # d = Dict(i => 0 for i in N)
+
+    # for k in keys(E)
+    #     Ek = E[k]
+    #     for e in keys(Ek)   
+    #         for i in e
+    #             d[i] = get(d, i, 0) + 1
+    #         end
+    #     end
+    # end
+    # for i = 1:maximum(keys(d)) # fill in zeros 
+    #     d[i] = get(d, i, 0)
+    # end
+    # return([d[i] for i = 1:length(d)])
 end
 
 function computeDegrees(H::hypergraph)
-    return computeDegrees(H.E)
+    return computeDegrees(H.E, H.N)
 end
 
 function computeDegrees!(H::hypergraph)
@@ -103,8 +117,8 @@ function sampleSBM(args...;kwargs...)
     """
     Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. This is the primary user-facing function for sampling tasks. 
     """
-    E = sampleEdges(args...;kwargs...)
-    H = hypergraph(E = E)
+    E, N = sampleEdges(args...;kwargs...)
+    H = hypergraph(E = E, N = N)
 
     computeDegrees!(H)
     return(H)
