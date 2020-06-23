@@ -174,7 +174,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 end
 
 
-function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -209,6 +209,11 @@ function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
     iter = 0
     changemade = false
 
+    # Code for fast local changes in volumes
+    r = kmax
+    V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
+    C = evalConstants(r)
+
     while improving && iter < maxits
 
         iter += 1
@@ -238,6 +243,9 @@ function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
             # The default is to not move the cluster
             BestC = Z[i]
             BestImprove = 0
+            V_best = 0
+            μ_best = 0
+            M_best = 0
 
             # Now let's see if it's better to move to a nearby cluster, Cj
             for j = 1:length(NC)
@@ -248,18 +256,20 @@ function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
                     change = 0
                 else
 
-                    Znew = copy(Z)
-                    Znew[i] = Cj_ind
-                    # Phil--here's where to add in faster code for incremental change in volume term
-                    voldiff = second_term_eval(H, Znew, Ω; bigInt = bigInt)-second_term_eval(H, Z, Ω; bigInt = bigInt)
-                    # update voldiff function
+                    # Znew = copy(Z)
+                    # Znew[i] = Cj_ind
+                    # voldiff = -second_term_eval(H, Znew, Ω; bigInt = bigInt)+second_term_eval(H, Z, Ω; bigInt = bigInt)
 
+                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z,C)
                     cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω)
-                    change =  cdiff - voldiff
+                    change =  cdiff + voldiff
                 end
 
                 # Check if this is currently the best possible greedy move to make
                 if change > BestImprove
+                    V_best = ΔV
+                    μ_best = Δμ
+                    M_best = ΔM
                     BestImprove = change
                     BestC = Cj_ind
                     improving = true
@@ -268,6 +278,11 @@ function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
 
             # Move i to the best new cluster, only if it strictly improves modularity
             if BestImprove > 1e-8
+
+                # increments
+                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
+
+                # update clustering
                 ci_old = Z[i]
                 Z[i] = BestC
 
@@ -288,4 +303,26 @@ function HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
     Z, Clusters = renumber(Z,Clusters)
     return Z
 
+end
+
+
+function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Integer}, Z::Vector{Int64},C::Dict)
+
+    # increments due to proposal
+    ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z)
+
+    # new proposed quantities
+    V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+
+    vol = 0
+    for p in keys(M)
+        vol += Ω(p,mode = "partition")*M[p]*C[p]
+    end
+    vol_prop = 0
+    for p in keys(M_prop)
+        vol_prop += Ω(p,mode = "partition")*M_prop[p]*C[p]
+    end
+    voldiff = vol-vol_prop
+
+    return voldiff, ΔV, Δμ, ΔM
 end
