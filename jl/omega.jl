@@ -16,16 +16,25 @@ function harmonicMean(p::Array{T, 1}) where {T<:Integer}
     prod(p)^(1/k)
 end
 
-function organize_by_size(Ω_dict::Dict{Array{Int64, 1}, Float64})
+function organize_by_size(Ω_dict::Dict{Vector{Int64}, Float64})
     """
     Given a Dict() in which keys are partitions, returns a Vector{Dict{Array{Integer}, Any}}() in which the kth entry is the Dict() of partitions and values of fixed size. Can be used to obtain better performance. 
     """
-    Om = Vector{Dict}()
-    for k = 1:kmax
-        omk = Dict(p => Ω_dict[p] for p in partitions(k))
-        push!(Om, omk)
+    Om = Dict{Int64, Dict{Vector{Int64}, Float64}}()
+    for p in keys(Ω_dict)
+        k = sum(p)
+        if !haskey(Om,k)
+            Om[k] = Dict()
+        end
+        Om[k][p] = Ω_dict[p]
     end
-    return Om
+    return Om        
+    # end
+    # for k = 1:kmax
+    #     omk = Dict(p => Ω_dict[p] for p in partitions(k))
+    #     push!(Om, omk)
+    # end
+    # return Om
 end
 
 function buildΩ(Ω_dict::Dict{Array{T,1}, Float64}; by_size=true) where {T<:Integer}
@@ -60,7 +69,7 @@ function ΩFromDict(Ω_dict::Dict{Array{T,1}, Float64}) where {T<:Integer}
     return Ω
 end
 
-function ΩFromDictBySize(Ω_dict::Dict{Array{T,1}, Float64}) where {T<:Integer}
+function ΩFromDictBySize(Ω_dict::Dict{Vector{Int64}, Float64}) 
     """
     Create an partition-based intensity function Ω by passing a Dict() of partition-value pairs. 
     Behind the scenes, the intensity function returns values from a Vector of Dict{Array{T,1}, Float64}, where T<:Integer. 
@@ -69,7 +78,7 @@ function ΩFromDictBySize(Ω_dict::Dict{Array{T,1}, Float64}) where {T<:Integer}
     return:: Ω, an intensity function which, when passed a key from Ω_dict, returns the corresponding value. 
     """
     Om = organize_by_size(Ω_dict)
-    function Ω(p::Array{T,1}; mode = "group", k=0)::Float64 where {T<:Integer}
+    function Ω(p::Vector{<:Integer}; mode = "group", k=0)::Float64 
         if mode == "group"
             if k == 0
                 k = length(p)

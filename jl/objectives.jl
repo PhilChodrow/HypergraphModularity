@@ -51,7 +51,7 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     return Q, K, C
 end
 
-function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any) 
+function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1)) 
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω. 
     This function is VERY slow and should generally only be used for testing purposes. 
@@ -62,7 +62,10 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
     """
     n = length(Z)
     L, C, V, K, R = 0.0, 0.0, 0.0, 0.0, 0.0
-    D = 1.0*H.D
+
+    if ϑ == zeros(1)
+        ϑ = 1.0*H.D
+    end
 
     for k in keys(H.E)  
         T = with_replacement_combinations(1:n, k) 
@@ -71,7 +74,7 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any)
 
             z = Z[S]
             c = counting_coefficient(S)
-            θ = D[S]
+            θ = ϑ[S]
             
             m = get(Ek, S, 0)
 
