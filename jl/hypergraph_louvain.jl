@@ -189,6 +189,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
     node2edges = EdgeMap(H)             # node to hyperedge list
     convert = time()-start
+    n = length(H.D)
     println("")
     # println("Took $convert seconds to convert to different hypergraph formats")
 
