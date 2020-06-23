@@ -8,9 +8,9 @@ include("HSBM.jl")
 # This code has been partially optimized for quick updates, which means that it is more complicated that it would need to be if we were just updating from scratch every time. 
 
 # Throughout these functions: 
-# - N::Dict{Array{Int64,1},Int} is a Dict mapping sorted partition vectors to their volume sums. 
-# - M::Dict{Array{Int64,1},Int} is a Dict mapping sorted partition vectors to their *uncorrected* sums. By *uncorrected*, we mean that these sums must be multipled by a set of combinatorial constants prior to including in the modularity function. Each entry of M differs from the corresponding entry of N by a combinatorial constant. 
-# - p::Array{Int64,1} is a partition vector
+# - N::Dict{Vector{Int64},<:Integer} is a Dict mapping sorted partition vectors to their volume sums. 
+# - M::Dict{Vector{Int64},<:Integer} is a Dict mapping sorted partition vectors to their *uncorrected* sums. By *uncorrected*, we mean that these sums must be multipled by a set of combinatorial constants prior to including in the modularity function. Each entry of M differs from the corresponding entry of N by a combinatorial constant. 
+# - p::Vector{Int64} is a partition vector
 # - D::Array{Int64, 1} is the degree sequence of the hypergraph, which does not change. 
 # - Z::Array{Int64, 1} is the group label vector, which does change.  
 # - ℓ::Int64 is the number of groups. 
@@ -19,12 +19,12 @@ include("HSBM.jl")
 # COMPUTATION OF SUMS FROM SCRATCH
 # ------------------------------------------------------------------------------
 
-function correctOvercounting(M::Dict, p::Array)
+function correctOvercounting(M::Dict{Vector{Int64},<:Integer}, p::Vector{Int64})
     """
     Internal function: no reason to call this outside of evalSums(). 
     Computes the second term in the recurrence relation given in the paper. 
-    M::Dict{Array{Int64,1},bigInt}, a Dict mapping sorted partition vectors to their *uncorrected* volume-sums, 
-    p::Array{Int64,1}, the partition for which we are calculating.  
+    M::Dict{Vector{Int64},<:Integer}, a Dict mapping sorted partition vectors to their *uncorrected* volume-sums, 
+    p::Vector{Int64}, the partition for which we are calculating.  
     returns S::bigInt, the second term in the recurrence relation. 
     """
     pk = p[end]
@@ -37,15 +37,15 @@ function correctOvercounting(M::Dict, p::Array)
     return(S)
 end
 
-function computeMoments(Z::Array, D::Array, r, ℓ=0)
+function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
     """
     Compute the vectors V of group volumes and μ of volume-moments. 
     No reason to call this outside of evalSums()
-    Z::Array{Int64,1}, the vector of cluster labels. 
-    D::Array{Int64,1}, the degree sequence
+    Z::Vector{Int64}, the vector of cluster labels. 
+    D::Vector{Int64}, the degree sequence
     r::Int64, the size of the largest hyperedge
     ℓ::Int64, the number of groups (defaults to maximum(Z))
-    returns V::Array{Int64, 1} the vector of group volumes and μ::Array{Int64,1} of volume-moments. 
+    returns V::Array{Int64, 1} the vector of group volumes and μ::Vector{Int64} of volume-moments. 
     NOTE: might want to implement bigInts in μ
     """
     if ℓ==0
@@ -57,14 +57,19 @@ function computeMoments(Z::Array, D::Array, r, ℓ=0)
     return(V, μ)
 end
 
-function evalConstants(r; bigInt=true)
+function evalConstants(r::Int64; bigInt::Bool=true)
     """
     Evaluate the combinatorial constants required to convert the "convenient" sums M to the required sums N required for modularity calculations. 
     r::The size of the largest hyperedge. 
     bigInt:Bool, whether to use bigInts for this computation, recommended unless the instance is VERY small. 
     return: C::Dict{Array{Int64, 1}, bigInt} a Dict mapping a partition vector to its associated combinatorial constant. 
     """
-    C = Dict{Array{Integer, 1}, Integer}()
+
+    C = 
+        if bigInt C = Dict{Vector{Int64},BigInt}()
+        else      C = Dict{Vector{Int64},Int64}()
+        end
+
     for i = 1:r, j = 1:i, p in partitions(i, j)
         orderCorrection =
             if bigInt prod([factorial(big(c)) for c in values(countmap(p))])
@@ -76,7 +81,7 @@ function evalConstants(r; bigInt=true)
     return(C)
 end;
 
-function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
+function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64; constants::Bool=true, ℓ::Int64=0, bigInt::Bool=true)
     """
     Z::Array{Int64, 1} the vector of integer group labels
     D::Array{Int64, 1} the vector of degrees
@@ -84,7 +89,7 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
     constants::Bool, whether to postmultiply by the combinatorial constants computed by evalConstants prior to returning the values. Choose true if computing modularity directly using the results, choose false if performing incremental updates a la Louvain
     ℓ::Int64, the number of groups (defaults to maximum(Z))
     bigInt::Bool, whether to use bigInt conversions for D and Z. Recommended unless the instance is VERY small. 
-    return (V::Array{bigInt,1}, μ::Array{bigInt,1}, M::Dict{Array{Int64,1},bigInt}, with V and μ as described in computeMoments(), and M::Dict{Array{Int64,1},bigInt} is the array of (optionally uncorrected) volume sums. 
+    return (V::Array{bigInt,1}, μ::Array{bigInt,1}, M::Dict{Vector{Int64},bigInt}, with V and μ as described in computeMoments(), and M::Dict{Vector{Int64},bigInt} is the array of (optionally uncorrected) volume sums. 
     """
 
     if bigInt
@@ -94,7 +99,11 @@ function evalSums(Z::Array, D::Array, r; constants=true, ℓ=0, bigInt=true)
 
     V, μ = computeMoments(Z, D, r, ℓ)
     
-    M = Dict{Array{Integer, 1}, Integer}()
+    if bigInt
+        M = Dict{Vector{Int64}, BigInt}()
+    else
+        M = Dict{Vector{Int64}, Int64}()
+    end
 
     for i = 1:r, j = 1:i, p in partitions(i, j)
         M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
@@ -111,11 +120,11 @@ end
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class. 
 
-function evalSums(Z::Array, D::Array, r, ℓ=0, bigInt=true)
+function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64, ℓ::Int64=0, bigInt::Bool=true)
     return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
 end
 
-function evalSums(Z::Array, H::hypergraph, ℓ=0, bigInt=true)
+function evalSums(Z::Vector{Int64}, H::hypergraph, ℓ::Int64=0, bigInt::Bool=true)
     r = maximum(keys(H.E))
     return evalSums(Z, H.D, r, ℓ, bigInt)
 end
@@ -124,7 +133,7 @@ end
 # INCREMENTS
 # ------------------------------------------------------------------------------
 
-function momentIncrements(V, μ, i, t, D, Z)
+function momentIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, i::Int64, t::Int64, D::Vector{<:Integer}, Z::Vector{<:Integer})
     """
     Compute the update for the vectors V and μ associated with moving node i from its current group to group t. 
     V::Array{Integer, 1}, the vector of group volumes. 
@@ -148,7 +157,7 @@ function momentIncrements(V, μ, i, t, D, Z)
     return ΔV, Δμ
 end
 
-function increments(V, μ, M, i, t, D, Z)
+function increments(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{Int64},<:Integer}, i::Int64, t::Int64, D::Vector{<:Integer}, Z::Vector{<:Integer}; bigInt::Bool=true)
     """
     Compute the update for the vectors V and μ, as well as the uncorrected sums M, associated with moving node i from its current group to group t. 
     V::Array{Integer, 1}, the vector of group volumes. 
@@ -164,7 +173,12 @@ function increments(V, μ, M, i, t, D, Z)
     ΔV, Δμ = momentIncrements(V, μ, i, t, D, Z)
 
     # compute increments in M using recursion formula from notes
-    ΔM = Dict{Array{Integer, 1}, Integer}()
+    if bigInt
+        ΔM = Dict{Vector{Int64}, BigInt}()
+    else
+        ΔM = Dict{Vector{Int64}, Int64}()
+    end
+
     r = maximum([sum(p) for p in keys(M)])
     for i = 1:r, j = 1:i, p in partitions(i, j)
         ΔM[p] = Δμ[p[end]]*get(M, p[1:(end-1)], 1) + μ[p[end]]*get(ΔM, p[1:(end-1)], 0) + Δμ[p[end]]*get(ΔM, p[1:(end-1)], 0) - correctOvercounting(ΔM,p)
@@ -173,7 +187,7 @@ function increments(V, μ, M, i, t, D, Z)
     return(ΔV, Δμ, ΔM)
 end
 
-function addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+function addIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{Int64},<:Integer}, ΔV::Vector{<:Integer}, Δμ::Vector{<:Integer}, ΔM::Dict{Vector{Int64},<:Integer})
     """
     Add the increments (ΔV, Δμ, ΔM) to (V, μ, M), entrywise in the case of M. 
     V::Array{Integer, 1}, the vector of group volumes. 
@@ -189,7 +203,7 @@ end
 # COMPLETE COMPUTATION OF SECOND (VOLUME) TERM IN MODULARITY
 # ------------------------------------------------------------------------------
 
-function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt=true)
+function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; ℓ::Int64 = 0, bigInt::Bool=true)
     """
     Naive implementation, computes sums from scratch. 
     H::hypergraph
@@ -206,7 +220,7 @@ function second_term_eval(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ = 0, bigInt
         ℓ = maximum(Z)
     end
 
-    V, μ, M = evalSums(Z, H, ℓ , bigInt)
+    V, μ, M = evalSums(Z, H, ℓ, bigInt)
     for p in keys(M)
         obj += Ω(p, mode = "partition")*M[p]
     end
