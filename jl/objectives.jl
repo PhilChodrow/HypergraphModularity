@@ -2,7 +2,7 @@ include("utils.jl")
 include("cut.jl")
 include("vol.jl")
 
-function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
+function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω;α, bigInt::Bool=true)
     """
     Compute the modularity of a partition Z in a hypergraph H with interaction function Ω. 
     H::hypergraph: the input hypergraph 
@@ -12,13 +12,13 @@ function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     return: Q::Float, the modularity term in the HSBM likelihood for H, Z, and Ω. 
     """
 
-    cut = first_term_eval(H, Z, Ω)
-    vol = second_term_eval(H, Z, Ω; bigInt = bigInt)
+    cut = first_term_eval(H, Z, Ω; α=α)
+    vol = second_term_eval(H, Z, Ω; α=α, bigInt = bigInt)
     
     return cut - vol
 end
 
-function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
+function L(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω. 
     H::hypergraph: the input hypergraph 
@@ -27,7 +27,7 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended. 
     return: L::Float, the log-likelihood of H with parameters Z and Ω under the HSBM model. 
     """
-    Q = modularity(H, Z, Ω; bigInt=bigInt)   
+    Q = modularity(H, Z, Ω; α=α, bigInt=bigInt)   
 
     D = computeDegrees(H)
 
@@ -51,7 +51,7 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; bigInt::Bool=true)
     return Q, K, C
 end
 
-function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1)) 
+function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1); α) 
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω. 
     This function is VERY slow and should generally only be used for testing purposes. 
@@ -78,12 +78,12 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Floa
             
             m = get(Ek, S, 0)
 
-            L += log(poisson_pdf(m, c*prod(θ)*Ω(z; mode="group")))
+            L += log(poisson_pdf(m, c*prod(θ)*Ω(z; α = α, mode="group")))
 
-            K += m*(log(c) + sum(log.(θ)))
-            V += c*prod(θ)*Ω(z; mode="group")
-            R += log(factorial(m)) # think about this
-            C += m*log(Ω(z; mode="group"))        
+#             K += m*(log(c) + sum(log.(θ)))
+#             V += c*prod(θ)*Ω(z; α = α, mode="group")
+#             R += log(factorial(m)) # think about this
+#             C += m*log(Ω(z; α = α, mode="group"))        
         end
     end
     

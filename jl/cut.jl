@@ -5,7 +5,7 @@ include("utils.jl")
 include("hyper_format.jl")
 
 
-function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
+function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω; α)
     """
     Not optimized, goal is to make this as quick and easy as
     possible using existing code.
@@ -22,13 +22,13 @@ function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω)
         El = H.E[l]
         for edge in keys(El)
             p = partitionize(c[edge])
-            obj += El[edge]*log(Ω(p; mode="partition", k = l))
+            obj += El[edge]*log(Ω(p; α=α, mode="partition"))
         end
     end
     return obj
 end
 
-function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int64,1}, Ω)
+function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int64,1}, Ω; α)
     """
     Second version: store penalties first,
     and more importantly, a faster way to compute Ω(z_e)
@@ -42,12 +42,11 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
     for i = 1:length(w)
 
         edge = H[i]
-        l = length(edge)
         clus_e = c[edge]    # set of clusters
 
         p = partitionize(clus_e)
 
-        om_z = Ω(p; mode="partition", k = l)
+        om_z = Ω(p; α=α, mode="partition")
 
         obj += w[i]*log(om_z)
     end
@@ -55,7 +54,7 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},c::Array{Int
 end
 
 
-function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1}, I::Int64,J::Int64,Ω)
+function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1}, I::Int64,J::Int64,Ω; α)
     """
     CutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.
@@ -67,10 +66,9 @@ function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector
     He = node2edges[I]
     for i = He
         edge = H[i]
-        l = length(edge)
         clus_e = c[edge]    # set of clusters
         p = partitionize(clus_e)
-        om_z = Ω(p; mode="partition", k = l)
+        om_z = Ω(p;α=α, mode="partition")
         obj1 += w[i]*log(om_z)
     end
 
@@ -78,10 +76,9 @@ function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector
     c[I] = J
     for i = He
         edge = H[i]
-        l = length(edge)
         clus_e = c[edge]    # set of clusters
         p = partitionize(clus_e)
-        om_z = Ω(p; mode="partition", k = l)
+        om_z = Ω(p; α=α, mode="partition")
         obj2 += w[i]*log(om_z)
     end
     c[I] = orig
@@ -89,7 +86,7 @@ function CutDiff(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector
 end
 
 
-function NaiveCutDiff(H::hypergraph,c::Array{Int64,1},I::Int64, J::Int64, Ω)
+function NaiveCutDiff(H::hypergraph,c::Array{Int64,1},I::Int64, J::Int64, Ω; α)
     """
     NaiveCutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.
@@ -97,15 +94,15 @@ function NaiveCutDiff(H::hypergraph,c::Array{Int64,1},I::Int64, J::Int64, Ω)
     Naive edition: just call first_term_eval twice
     """
     orig = c[I]
-    obj1 = first_term_eval(H,c,Ω)
+    obj1 = first_term_eval(H,c,Ω; α=α)
     c[I] = J
-    obj2 = first_term_eval(H,c,Ω)
+    obj2 = first_term_eval(H,c,Ω; α=α)
     c[I] = orig
     return obj2 - obj1
 end
 
 
-function NaiveCutDiff2(HyperedgeList::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1},I::Int64,J::Int64, Ω)
+function NaiveCutDiff2(HyperedgeList::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1},I::Int64,J::Int64, Ω; α)
     """
     NaiveCutDiff2: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.
@@ -113,9 +110,9 @@ function NaiveCutDiff2(HyperedgeList::Vector{Vector{Int64}},w::Array{Float64,1},
     Naive edition 2: just call first_term_v2 twice
     """
     orig = c[I]
-    obj1 = first_term_v2(HyperedgeList,w,c,Ω)
+    obj1 = first_term_v2(HyperedgeList,w,c,Ω; α=α)
     c[I] = J
-    obj2 = first_term_v2(HyperedgeList,w,c,Ω)
+    obj2 = first_term_v2(HyperedgeList,w,c,Ω; α=α)
     c[I] = orig
     return obj2 - obj1
 end

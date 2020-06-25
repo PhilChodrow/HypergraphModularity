@@ -203,7 +203,7 @@ end
 # COMPLETE COMPUTATION OF SECOND (VOLUME) TERM IN MODULARITY
 # ------------------------------------------------------------------------------
 
-function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; ℓ::Int64 = 0, bigInt::Bool=true)
+function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; α, ℓ::Int64 = 0, bigInt::Bool=true)
     """
     Naive implementation, computes sums from scratch. 
     H::hypergraph
@@ -222,7 +222,7 @@ function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; ℓ::Int64 =
 
     V, μ, M = evalSums(Z, H, ℓ, bigInt)
     for p in keys(M)
-        obj += Ω(p, mode = "partition")*M[p]
+        obj += Ω(p; α=α, mode = "partition")*M[p]
     end
     return obj
 end

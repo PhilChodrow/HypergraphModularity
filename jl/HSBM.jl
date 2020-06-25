@@ -21,7 +21,7 @@ The purpose of this module is to define a flexible stochastic blockmodel for hyp
 
 end
 
-function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any)
+function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any)
     """
     Sample a Poisson number of edges on a sequence of nodes S according to the hypergraph SBM law. 
     S: an array of node indices 
@@ -35,11 +35,11 @@ function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω:
     
     # combinatorial factor associated with repeated indices. Equivalent to sampling a separate Poisson for each of the c distinct permutations of the node labels S
     c = counting_coefficient(S)    
-    X = Poisson(prod(θ)*Ω(z;mode="group")*c)
+    X = Poisson(prod(θ)*Ω(z; α=α, mode="group")*c)
     return(rand(X))
 end
 
-function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; kmax::Int64=3, kmin::Int64=2)
+function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any, kmax::Int64=3, kmin::Int64=2)
     """
     run sampleEdge() for each possible distinct sequence of no more than k_max node labels, allowing repeats, and concatenate the results as a single array (edge list)
     The arrays Z and ϑ are required to be of the same length n. 
@@ -52,7 +52,7 @@ function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; kmax::Int64
         T = with_replacement_combinations(1:n, k)
         Ek = Dict{Vector{Int64}, Int64}()
         for S in T
-            X = sampleEdge(S, Z, ϑ, Ω)
+            X = sampleEdge(S, Z, ϑ, Ω; α=α)
             if X > 0
                 Ek[S] = X
             end
@@ -63,13 +63,13 @@ function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; kmax::Int64
     return(E, N)
 end
 
-function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; kmax::Int64=3, kmin::Int64=2)
+function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; α::Any, kmax::Int64=3, kmin::Int64=2)
     """
     An alternative method when Z and ϑ are specified as dicts keyed by node rather than as arrays. 
     """
     Z = [Z[i] for i in 1:length(Z)]
     ϑ = [ϑ[i] for i in 1:length(ϑ)]
-    sampleEdges(Z, ϑ, Ω; kmax=kmax, kmin=kmin)
+    sampleEdges(Z, ϑ, Ω; α=α, kmax=kmax, kmin=kmin)
 end
 
 function computeDegrees(E::Dict{Int64, Dict}, N::Vector{Int64})

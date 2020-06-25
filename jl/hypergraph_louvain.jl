@@ -5,7 +5,7 @@ include("objectives.jl")
 include("hyper_format.jl")
 include("HSBM.jl")
 
-function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Float64,Int64},w::Array{Float64,1},c::Array{Int64,1}, I::Int64,J::Int64,Ω)
+function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Float64,Int64},w::Array{Float64,1},c::Array{Int64,1}, I::Int64,J::Int64,Ω;α)
     """
     CutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.
@@ -17,10 +17,9 @@ function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Floa
     obj1 = 0
     for i = He
         edge = getnodes(Hn2e,i)
-        l = length(edge)
         clus_e = c[edge]    # set of clusters
         p = partitionize(clus_e)
-        om_z = Ω(p; mode="partition", k = l)
+        om_z = Ω(p; α=α, mode="partition")
         obj1 += w[i]*log(om_z)
     end
 
@@ -28,10 +27,9 @@ function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Floa
     obj2 = 0
     for i = He
         edge = getnodes(Hn2e,i)
-        l = length(edge)
         clus_e = c[edge]    # set of clusters
         p = partitionize(clus_e)
-        om_z = Ω(p; mode="partition", k = l)
+        om_z = Ω(p; α=α,mode="partition")
         obj2 += w[i]*log(om_z)
     end
     c[I] = orig
@@ -64,7 +62,7 @@ function renumber(Z::Vector{Int64},Clusters::Vector{Vector{Int}})
 
 end
 
-function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true)
+function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -138,7 +136,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 
                     Znew = copy(Z)
                     Znew[i] = Cj_ind
-                    change = modularity(H,Znew,Ω) - modularity(H,Z,Ω)
+                    change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
                 end
 
                 # Check if this is currently the best possible greedy move to make
@@ -174,7 +172,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 end
 
 
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true)
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -262,8 +260,8 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     # voldiff1 = -second_term_eval(H, Znew, Ω; bigInt = bigInt)+second_term_eval(H, Z, Ω; bigInt = bigInt)
                     # cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω)
 
-                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C, Ω)
-                    cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω)
+                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
+                    cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
                     change =  cdiff + voldiff
                 end
 
@@ -308,7 +306,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 end
 
 
-function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω)
+function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α)
 
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z)
@@ -318,11 +316,11 @@ function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vec
 
     vol = 0
     for p in keys(M)
-        vol += Ω(p,mode = "partition")*M[p]*C[p]
+        vol += Ω(p;α=α,mode = "partition")*M[p]*C[p]
     end
     vol_prop = 0
     for p in keys(M_prop)
-        vol_prop += Ω(p,mode = "partition")*M_prop[p]*C[p]
+        vol_prop += Ω(p;α=α,mode = "partition")*M_prop[p]*C[p]
     end
     voldiff = vol-vol_prop
 

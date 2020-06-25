@@ -108,20 +108,20 @@ Z = rand(1:5, n)
 ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
 μ = mean(ϑ)
 
+Z = rand(1:2, n)
+ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
+
+# defining group intensity function Ω
+μ = mean(ϑ)
+
+ω(p,α) = (10 .*μ*sum(p))^(-sum(p))*prod(p.^α)^(1/(sum(p)*α))
+α0 = 1
+
 kmax = 4
 
-fk = k->(2.4*μ*k)^(-k)
-fp = harmonicMean
+Ω = buildΩ(ω, α0, kmax)
 
-Ω_dict = Dict{Array{Int64, 1}, Float64}()
-
-for k = 1:kmax, p in partitions(k)
-    Ω_dict[p] = fk(sum(p))*fp(p)
-end
-
-Ω = buildΩ(Ω_dict; by_size=true)
-
-H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
+H = sampleSBM(Z, ϑ, Ω;α=α0, kmax=kmax, kmin = 1)
 
 # test for incremental updates in the cut term (first term of the modularity). NATE, plug in here
 
@@ -131,8 +131,8 @@ H = sampleSBM(Z, ϑ, Ω; kmax=kmax, kmin = 1)
     node2edges = EdgeMap(H)
     I = rand(1:n)
     J = Z[I] + 1
-    a = NaiveCutDiff(H,Z,I,J,Ω)
-    b = CutDiff(Hyp,w,node2edges,Z,I,J,Ω)
+    a = NaiveCutDiff(H,Z,I,J,Ω;α=α0)
+    b = CutDiff(Hyp,w,node2edges,Z,I,J,Ω;α=α0)
 
     @test a ≈ b
 
@@ -143,14 +143,14 @@ end
 
     kmin = 1
 
-    cut1 = first_term_eval(H,Z,Ω)
+    cut1 = first_term_eval(H,Z,Ω;α=α0)
 
     # ff = p->fp(p)*fk(sum(p))
     # Om = build_omega(kmax,ff)
 
     Hyp, w = hyperedge_formatting(H)
 
-    cut2 = first_term_v2(Hyp,w,Z,Ω)
+    cut2 = first_term_v2(Hyp,w,Z,Ω;α=α0)
 
     @test cut1 ≈ cut2
 end
@@ -159,11 +159,11 @@ end
 @testset "modularity" begin
 
     # compute the true LL
-    trueLogLik = logLikelihood(H, Z, Ω)
+    trueLogLik = logLikelihood(H, Z, Ω;α=α0)
 
     # compute the three terms including modularity and check for near equality with the true likelihood
 
-    Q, K, R = L(H, Z, Ω; bigInt=false)
+    Q, K, R = L(H, Z, Ω; α=α0, bigInt=false)
 
     @test Q + K + R ≈ trueLogLik
 end
