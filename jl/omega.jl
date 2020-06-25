@@ -107,7 +107,7 @@ function buildΩ(f, α0, kmax)
         
         # check if the parameter has been updated and re-memoize if so
         if !(α ≈ ᾱ)
-            println("rememoizing")
+#             println("rememoizing")
             ᾱ = α
             Om = Dict(k => Dict(p => f(p,ᾱ) for p in partitions(k)) for k = 1:kmax)
         end
