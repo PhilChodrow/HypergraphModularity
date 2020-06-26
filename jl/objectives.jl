@@ -40,7 +40,7 @@ function parameterEstimateObjective(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ::
                 obj += C[p]*log(Op)
             end
         end
-        return obj
+        return -obj # for minimization
     end
     return objective
 end
@@ -108,11 +108,6 @@ function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Floa
             m = get(Ek, S, 0)
 
             L += log(poisson_pdf(m, c*prod(θ)*Ω(z; α = α, mode="group")))
-
-#             K += m*(log(c) + sum(log.(θ)))
-#             V += c*prod(θ)*Ω(z; α = α, mode="group")
-#             R += log(factorial(m)) # think about this
-#             C += m*log(Ω(z; α = α, mode="group"))        
         end
     end
     
