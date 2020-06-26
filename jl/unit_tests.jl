@@ -145,14 +145,11 @@ end
 
     cut1 = first_term_eval(H,Z,Ω;α=α0)
 
-    # ff = p->fp(p)*fk(sum(p))
-    # Om = build_omega(kmax,ff)
-
     Hyp, w = hyperedge_formatting(H)
 
     cut2 = first_term_v2(Hyp,w,Z,Ω;α=α0)
     
-    cut3 = first_term_v3(Hyp,w,Z,Ω;α=α0)
+    cut3 = first_term_v3(Z,H,Ω;α=α0)
 
     @test cut1 ≈ cut2
     @test cut2 ≈ cut3
@@ -169,4 +166,12 @@ end
     Q, K, R = L(H, Z, Ω; α=α0, bigInt=false)
 
     @test Q + K + R ≈ trueLogLik
+end
+
+@testset "parameter objective" begin
+    
+    Q = modularity(H, Z, Ω; α=α0, bigInt=false)
+    Q_ = parameterEstimateObjective(H, Z, Ω; bigInt=false)
+    
+    @test Q_(α0) ≈ Q
 end

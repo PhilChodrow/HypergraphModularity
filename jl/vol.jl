@@ -214,8 +214,7 @@ function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; α, ℓ::Int
     """
 
     obj = 0
-    kmax = maximum(keys(H.E))
-
+    
     if ℓ == 0
         ℓ = maximum(Z)
     end
