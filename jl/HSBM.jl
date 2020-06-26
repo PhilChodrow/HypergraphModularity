@@ -88,21 +88,6 @@ function computeDegrees(E::Dict{Int64, Dict}, N::Vector{Int64})
         end
     end
     return(d)
-
-    # d = Dict(i => 0 for i in N)
-
-    # for k in keys(E)
-    #     Ek = E[k]
-    #     for e in keys(Ek)   
-    #         for i in e
-    #             d[i] = get(d, i, 0) + 1
-    #         end
-    #     end
-    # end
-    # for i = 1:maximum(keys(d)) # fill in zeros 
-    #     d[i] = get(d, i, 0)
-    # end
-    # return([d[i] for i = 1:length(d)])
 end
 
 function computeDegrees(H::hypergraph)
