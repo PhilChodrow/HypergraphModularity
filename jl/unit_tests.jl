@@ -151,8 +151,11 @@ end
     Hyp, w = hyperedge_formatting(H)
 
     cut2 = first_term_v2(Hyp,w,Z,Ω;α=α0)
+    
+    cut3 = first_term_v3(Hyp,w,Z,Ω;α=α0)
 
     @test cut1 ≈ cut2
+    @test cut2 ≈ cut3
 end
 
 

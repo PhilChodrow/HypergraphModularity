@@ -116,3 +116,20 @@ function NaiveCutDiff2(HyperedgeList::Vector{Vector{Int64}},w::Array{Float64,1},
     c[I] = orig
     return obj2 - obj1
 end
+
+function evalCuts(H::Vector{Vector{Int64}},w::Array{Float64,1},Z::Array{Int64,1})
+    C = Dict{Vector{Int64}, Int64}()
+    for i = 1:length(w)
+        p = partitionize(Z[H[i]])
+        C[p] = get(C, p, 0) + w[i]
+    end
+    return C
+end
+
+function first_term_v3(H::Vector{Vector{Int64}},w::Array{Float64,1},Z::Array{Int64,1}, Ω; α)
+    """
+    This function may be slightly more efficient than v2 due to the fact that we multiply by log Ω fewer times. It is here primarily as a check on evalCuts, which has independent significance in the context of learning parameterized versions of Ω. 
+    """
+    C = evalCuts(H, w, Z)
+    sum(C[p]*log(Ω(p; α=α, mode="partition")) for p in keys(C))
+end
