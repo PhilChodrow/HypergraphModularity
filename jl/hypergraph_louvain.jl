@@ -62,6 +62,25 @@ function renumber(Z::Vector{Int64},Clusters::Vector{Vector{Int}})
 
 end
 
+
+function renumber(c::Vector{Int64})
+    """
+    See above function, this function doesn't care about the Clusters array
+    """
+    n = length(c)
+    map = sort(unique(c))
+    cnew = zeros(Int64,n)
+
+    # Rename the clusters
+    for i = 1:n
+        newClus = findfirst(x->x == c[i],map)
+        cnew[i] = newClus
+    end
+
+    return cnew
+
+end
+
 function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
