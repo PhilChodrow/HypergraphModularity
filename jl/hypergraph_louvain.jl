@@ -62,6 +62,25 @@ function renumber(Z::Vector{Int64},Clusters::Vector{Vector{Int}})
 
 end
 
+
+function renumber(c::Vector{Int64})
+    """
+    See above function, this function doesn't care about the Clusters array
+    """
+    n = length(c)
+    map = sort(unique(c))
+    cnew = zeros(Int64,n)
+
+    # Rename the clusters
+    for i = 1:n
+        newClus = findfirst(x->x == c[i],map)
+        cnew[i] = newClus
+    end
+
+    return cnew
+
+end
+
 function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
@@ -325,4 +344,204 @@ function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vec
     voldiff = vol-vol_prop
 
     return voldiff, ΔV, Δμ, ΔM
+end
+
+
+function SuperNeighborList(Hyp, SuperNodes,n)
+    """
+    For an initial clustering into supernodes, get a list of other supernodes
+    adjacenct to each supernode
+    """
+    H = elist2incidence(Hyp,n)
+    m = size(H,1)
+    sn = length(SuperNodes)
+    I = Vector{Int64}()
+    J = Vector{Int64}()
+
+    for s = 1:sn
+        # For supernode j, get indices of all other supernodes i such that
+        # some node in j shares a node with some node in i
+        S = SuperNodes[s]
+
+        # this is silly and slow. But also not a bottleneck, so I'm
+        # not worrying about making it faster right now
+        Edges = findall(x->x>0,vec(sum(H[:,S],dims = 2)))  # all hyperedges nodes from S touch
+
+        for e in Edges
+            push!(I,s)
+            push!(J,e)
+        end
+    end
+
+    # binary (unweighted) supernodes-by-edges incidence matrix
+    Hnew = sparse(J,I,ones(length(I)),m,sn)
+    Neighbs = NeighborList(Hnew, sparse(Hnew'))
+    return Neighbs
+end
+
+function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+    """
+    A Louvain step, but starting with all nodes in an arbitrary initial cluster
+    assignment Z. Louvaint only considers moving an entire cluster at once.
+    Running this code with Z = collect(1:n) is equivalent to HypergraphLouvain
+
+    This is a naive first version of the code, which doesn't do anything
+    smart about being careful which clusters to even consider moving to.
+
+    H: hypergraph
+    Z: initial cluster assingment as a length n vector
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended.
+    return: Z::array{Int64, 1}: array of group labels.
+    """
+    # Begin by converting to alternative hypergraph storage
+    Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
+    node2edges = EdgeMap(H)             # node to hyperedge list
+    n = length(H.D)
+    println("")
+
+    # All nodes start in singleton clusters
+    Z = renumber(Z)
+
+    sn = maximum(Z) # number of supernodes
+
+    # Also store as cluster list
+    Clusters = Vector{Vector{Int64}}()
+    for j = 1:sn
+        push!(Clusters, Vector{Int64}())
+    end
+    for v = 1:n
+        push!(Clusters[Z[v]],v) # put node v in cluster Z[v]
+    end
+    SuperNodes = deepcopy(Clusters)
+
+    # Store indices of supernodes that neighbor each supernode
+    Neighbs = SuperNeighborList(Hyp, SuperNodes,n)
+
+    # There's a very subtle difference between the initial clustering,
+    # which defines a set of supernodes, and the current clustering that
+    # is being built by Louvain. Supernodes don't change--they move as a unit.
+    # Clusters change.
+
+    improving = true
+    iter = 0
+    changemade = false
+
+    while improving && iter < maxits
+
+        iter += 1
+        if mod(iter,1) == 0
+            println("Louvain Iteration $iter")
+        end
+        improving = false
+
+        # visit each supernode in turn
+        for i = 1:sn
+
+            # Get indices associated with this supernode
+            S = SuperNodes[i]
+
+            # Grab a "representative" node from this supernode
+            rep = S[1]
+
+            # Get the cluster associated with this supernode
+            Ci_ind = Z[rep]
+
+            # Get the indices of nodes in this cluster
+            Ci = Clusters[Ci_ind]
+
+            # Get all supernodes that neighbor this supernode
+            Ni = Neighbs[i]
+
+            # Then get all the clusters of neighboring supernodes
+            NC = Vector{Int64}()
+            for ni in Ni
+                push!(NC,Z[SuperNodes[ni][1]])
+            end
+
+            # do something naive first: just check move to all other clusters
+            # NC = collect(1:length(Clusters))
+
+            # The default is to not move the cluster
+            BestC = Ci_ind
+            BestImprove = 0
+
+            # Now let's see if it's better to move to a nearby cluster, Cj
+            for j = 1:length(NC)
+                Cj_ind = NC[j]
+
+                # Check how much it would improve to move i to to cluster j
+                if Cj_ind == Ci_ind
+                    change = 0
+                else
+
+
+                    Znew = copy(Z)
+                    # Move the entire supernode to the new cluster
+                    Znew[S] .= Cj_ind
+                    change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
+
+                end
+
+                # Check if this is currently the best possible greedy move to make
+                if change > BestImprove
+                    BestImprove = change
+                    BestC = Cj_ind
+                    improving = true
+                end
+            end
+
+            # Move supernode i to the best new cluster, only if it strictly improves modularity
+            if BestImprove > 0
+
+                # update clustering
+                ci_old = Z[rep] # index of the old cluster
+                Z[S] .= BestC
+
+                # Remove all nodes from supernode i from their old cluster.
+
+                Clusters[ci_old] = setdiff(Clusters[ci_old],S)
+
+                # Add them to their new cluster
+                append!(Clusters[BestC],S)
+                changemade = true
+                improving = true # we have a reason to keep iterating!
+            end
+        end
+    end
+    Z, Clusters = renumber(Z,Clusters)
+    return Z, changemade
+end
+
+
+function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+    """
+    Running Louvain and then the super-node louvain steps until no more
+    progress is possible
+
+    This calls the naive version of the supernode step as a subroutine.
+    Not entirely clear how to make this faster though.
+
+    H: hypergraph
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended.
+    return: Z::array{Int64, 1}: array of group labels.
+    """
+
+    phase = 1
+    println("SuperNode Louvain: Phase $phase")
+    Z = HyperLouvain(H,kmax,Ω;α=α0)
+    n = length(Z)
+
+    if maximum(Z) != n
+        changed = true
+    end
+
+    while changed
+        phase += 1
+        println("SuperNode Louvain: Phase $phase")
+        Z, changed = Naive_SuperNodeStep(H,Z,kmax,Ω;α=α0)
+    end
+
+    return Z
 end
