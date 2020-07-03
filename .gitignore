@@ -23,12 +23,18 @@ docs/site/
 # environment.
 Manifest.toml
 
+# Emacs temp files
+*~
+*#
+
 
 # Other
 
 .DS_Store
 .ipynb_checkpoints/*
 jl/.ipynb_checkpoints/*
+
+
 
 
 
