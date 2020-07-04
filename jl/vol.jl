@@ -117,11 +117,7 @@ function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64; constants::Bool=
 
     V, μ = computeMoments(Z, D, r, ℓ)
 
-    if bigInt
-        M = Dict{Vector{Int64}, BigInt}()
-    else
-        M = Dict{Vector{Int64}, Int64}()
-    end
+    M = bigInt ? Dict{Vector{Int64}, BigInt}() : Dict{Vector{Int64}, Int64}()
 
     for i = 1:r, j = 1:i, p in partitions(i, j)
         M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
@@ -220,10 +216,8 @@ function increments(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{
     ΔV, Δμ = momentIncrements(V, μ, I_, t, D, Z)
 
     # compute increments in M using recursion formula from notes
-    if bigInt
-        ΔM = Dict{Vector{Int64}, BigInt}()
-    else
-        ΔM = Dict{Vector{Int64}, Int64}()
+    if bigInt ΔM = Dict{Vector{Int64}, BigInt}()
+    else      ΔM = Dict{Vector{Int64}, Int64}()
     end
 
     r = maximum([sum(p) for p in keys(M)])
