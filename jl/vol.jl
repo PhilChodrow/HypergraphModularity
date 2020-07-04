@@ -3,7 +3,6 @@ using Combinatorics
 
 include("HSBM.jl")
 
-
 # Compute a complete set of sums using a fast recursive algorithm based on a simple combinatorial relationship between the required sums.
 # This code has been partially optimized for quick updates, which means that it is more complicated that it would need to be if we were just updating from scratch every time.
 
@@ -37,7 +36,7 @@ function correctOvercounting(M::Dict{Vector{Int64},<:Integer}, p::Vector{Int64})
     return(S)
 end
 
-function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
+function computeMoments_(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
     """
     Compute the vectors V of group volumes and μ of volume-moments.
     No reason to call this outside of evalSums()
@@ -53,6 +52,26 @@ function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, �
     end
 
     V = [sum(D.*(Z .== j)) for j in 1:ℓ]
+    μ = [sum(V.^i) for i = 1:r]
+    return(V, μ)
+end
+
+function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
+    """
+    Compute the vectors V of group volumes and μ of volume-moments.
+    No reason to call this outside of evalSums()
+    Z::Vector{Int64}, the vector of cluster labels.
+    D::Vector{Int64}, the degree sequence
+    r::Int64, the size of the largest hyperedge
+    ℓ::Int64, the number of groups (defaults to maximum(Z))
+    returns V::Array{Int64, 1} the vector of group volumes and μ::Vector{Int64} of volume-moments.
+    NOTE: might want to implement bigInts in μ
+    """
+    if ℓ==0
+        ℓ=maximum(Z)
+    end
+
+    V = [sum(D[Z .== j]) for j in 1:ℓ]
     μ = [sum(V.^i) for i = 1:r]
     return(V, μ)
 end
@@ -94,7 +113,6 @@ function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64; constants::Bool=
 
     if bigInt
         D = convert(Array{BigInt,1}, D)
-        Z = convert(Array{BigInt,1}, Z)
     end
 
     V, μ = computeMoments(Z, D, r, ℓ)

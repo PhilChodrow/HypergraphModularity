@@ -115,7 +115,7 @@ r = 3
 
         # first we'll step through, moving each node one-by-one
         V, μ, M = evalSums(Z, D, r; constants=false, bigInt=false);
-        @time for i in to_move
+        for i in to_move
             ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z_)
             V, μ, M = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
             # carry out the change in membership
@@ -125,7 +125,7 @@ r = 3
 
         # next we'll compute the complete set of increments at once
         V, μ, M = evalSums(Z, D, r; constants=false, bigInt=false);
-        @time ΔV, Δμ, ΔM = increments(V, μ, M, to_move, t, D, Z)
+        ΔV, Δμ, ΔM = increments(V, μ, M, to_move, t, D, Z)
         V, μ, M = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
         batch = M
         #
