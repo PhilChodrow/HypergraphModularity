@@ -325,10 +325,13 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 end
 
 
-function compute_voldiff(V::Array, μ::Array, M::Dict,i::Int64, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α)
-
+function compute_voldiff(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+    """
+    NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
+    I have not tested compute_voldiff, but I have tested increments() with this usage.
+    """
     # increments due to proposal
-    ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z)
+    ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
     # new proposed quantities
     V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
@@ -512,7 +515,6 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     Z, Clusters = renumber(Z,Clusters)
     return Z, changemade
 end
-
 
 function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """

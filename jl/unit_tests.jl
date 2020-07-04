@@ -50,7 +50,6 @@ r = 3
 
     @test s1 == s2
 
-
     # test that the naive and product-of-volumes formulae give the same results
 
     sumsNaive = evalSumsNaive(Z,D,r)
@@ -100,6 +99,38 @@ r = 3
         end;
         @test testUpdates(Z, D, 5, 100, true, true)
     end
+
+    @testset "Batch Increment" begin
+        Z = [1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5] # group partition
+        D = [3, 4, 2, 5, 6, 4, 3, 2, 5, 2, 2]; # degree sequence
+
+        r = 3
+
+        ℓ = maximum(Z) # number of total groups
+
+        # let's move all the nodes in group 4 to group 5
+        to_move = findall(==(4), Z)
+        t = 5
+        Z_ = copy(Z)
+
+        # first we'll step through, moving each node one-by-one
+        V, μ, M = evalSums(Z, D, r; constants=false, bigInt=false);
+        @time for i in to_move
+            ΔV, Δμ, ΔM = increments(V, μ, M, i, t, D, Z_)
+            V, μ, M = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+            # carry out the change in membership
+            Z_[i] = t
+        end
+        step_wise = M
+
+        # next we'll compute the complete set of increments at once
+        V, μ, M = evalSums(Z, D, r; constants=false, bigInt=false);
+        @time ΔV, Δμ, ΔM = increments(V, μ, M, to_move, t, D, Z)
+        V, μ, M = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+        batch = M
+        #
+        @test all([step_wise[p] == batch[p] for p in keys(M)])
+    end
 end
 
 # sample from a small HSBM
@@ -148,7 +179,7 @@ end
     Hyp, w = hyperedge_formatting(H)
 
     cut2 = first_term_v2(Hyp,w,Z,Ω;α=α0)
-    
+
     cut3 = first_term_v3(Z,H,Ω;α=α0)
 
     @test cut1 ≈ cut2
@@ -169,9 +200,9 @@ end
 end
 
 @testset "parameter objective" begin
-    
+
     Q = modularity(H, Z, Ω; α=α0, bigInt=false)
     Q_ = parameterEstimateObjective(H, Z, Ω; bigInt=false)
-    
-    @test Q_(α0) ≈ Q
+
+    @test Q_(α0) ≈ -Q
 end

@@ -12,7 +12,7 @@ The purpose of this module is to define a flexible stochastic blockmodel for hyp
 
 @with_kw mutable struct hypergraph
     """
-    A very simple hypergraph composite type, designed to hold an edge list E, a degree sequence. 
+    A very simple hypergraph composite type, designed to hold a node list N, an edge list E, a degree sequence D, 
     """
 
     N::Vector{Int64}
@@ -46,14 +46,15 @@ function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any, km
     Returns a Dict, keyed by edgesize. 
     Each value in this dict is itself a dict of edges, with counts, of the specified size. 
     """
-    E = Dict{Int64, Dict}()
-    n = length(Z)
+    E = Dict{Int64, Dict}() # initialize empty edge list
+    n = length(Z)           # number of nodes inferred from group labels
+    
     for k in kmin:kmax
-        T = with_replacement_combinations(1:n, k)
-        Ek = Dict{Vector{Int64}, Int64}()
+        T = with_replacement_combinations(1:n, k) # all distinct combos of k nodes
+        Ek = Dict{Vector{Int64}, Int64}()         # list of edges of size k 
         for S in T
             X = sampleEdge(S, Z, ϑ, Ω; α=α)
-            if X > 0
+            if X > 0                              # only store combos with at least one edge
                 Ek[S] = X
             end
         end
