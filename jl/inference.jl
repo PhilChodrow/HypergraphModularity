@@ -6,22 +6,26 @@ include("vol.jl")
 
 function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     """
-    Could organize by size later if we thought that would speed things up at all.
-
     aggregator groups partitions to new keys, upon which ω̂ is estimated (default: no aggregation)
+    PC: not currently populating with a minimum value
     """
-    
+
     T = Dict{Vector{Int64}, Float64}()
 
+    # think this block is essentially tracking cuts
+    # maybe Nate knows a faster way to do it? 
     for k in keys(H.E), e in keys(H.E[k])
         z = Z[e]
         p = partitionize(z)
-        m = values(countmap(p))
         T[p] = get(T,p,0) + H.E[k][e]
     end
-
+    
+    
     # Initialize
-    S = evalSums(Z,H)[3]
+    
+    r = maximum(k for k in keys(H.E)) # size of largest hyperedge
+    ℓ = r
+    S = evalSums(Z,H,ℓ, true)[3]
     T_agg = Dict{Any,Float64}()
     S_agg = Dict{Any,Float64}()
     for p in keys(S)
@@ -41,9 +45,13 @@ function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     ω̂ = Dict{Vector{Int64}, Float64}()
     for p in keys(S)
         agg_key = aggregator(p)
-        ω̂[p] = T_agg[agg_key] / S_agg[agg_key]
+        if S_agg[agg_key] == 0
+            ω̂[p] = min_val
+        else
+            ω̂[p] = T_agg[agg_key] / S_agg[agg_key]
+        end
     end
-    
+
     function Ω̂(x; α, mode="group")
         if mode == "group"
             return ω̂[partitionize(x)]

@@ -71,6 +71,7 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true)
             El = H.E[ℓ]
             for edge in keys(El)
                 c = counting_coefficient(edge)
+                if c < 0 print("woops") end
                 weight = El[edge]
                 K += weight*sum(logD[edge])
                 C += weight*log(c) - log(factorial(weight)) # can maybe improve on performance here?
