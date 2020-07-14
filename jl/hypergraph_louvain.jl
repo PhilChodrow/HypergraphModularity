@@ -279,7 +279,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     # voldiff1 = -second_term_eval(H, Znew, Ω; bigInt = bigInt)+second_term_eval(H, Z, Ω; bigInt = bigInt)
                     # cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω)
 
-                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
+                    voldiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
                     cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
                     change =  cdiff + voldiff
                 end
@@ -345,6 +345,26 @@ function compute_voldiff(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector
         vol_prop += Ω(p;α=α,mode = "partition")*M_prop[p]*C[p]
     end
     voldiff = vol-vol_prop
+
+    return voldiff, ΔV, Δμ, ΔM
+end
+
+function compute_voldiff2(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+    """
+    NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
+    I have not tested compute_voldiff, but I have tested increments() with this usage.
+    should give identical behavior as compute_voldiff, has not yet been tested.
+    """
+    # increments due to proposal
+    ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
+
+    # new proposed quantities
+    # V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
+
+    voldiff = 0
+    for p in keys(M)
+        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
+    end
 
     return voldiff, ΔV, Δμ, ΔM
 end
@@ -482,6 +502,8 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
                     Znew = copy(Z)
                     # Move the entire supernode to the new cluster
                     Znew[S] .= Cj_ind
+
+                    # PC -- look for performance improvements here.
                     change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
 
                 end
@@ -546,4 +568,16 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     end
 
     return Z
+end
+
+function naiveModDiff(S, j, H, Z, Ω; α)
+    """
+    a naive computation of the change in modularity associated with changing all the nodes in S from their current cluster (assumed to be the same) to cluster j.
+    Simply computes the modularities of the old and new partitions.
+    Should be identical to what's currently used at line 487.
+    """
+    Znew = copy(Z)
+    Znew[S] .= Cj_ind
+    change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
+    return change
 end
