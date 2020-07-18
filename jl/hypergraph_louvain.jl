@@ -4,6 +4,7 @@ using SparseArrays
 include("objectives.jl")
 include("hyper_format.jl")
 include("HSBM.jl")
+include("diffs.jl")
 
 function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Float64,Int64},w::Array{Float64,1},c::Array{Int64,1}, I::Int64,J::Int64,Ω;α)
     """
@@ -15,6 +16,7 @@ function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Floa
     orig = c[I]
     He = getedges(He2n,I)
     obj1 = 0
+    fprintf("using this code but shouldn't be")
     for i = He
         edge = getnodes(Hn2e,i)
         clus_e = c[edge]    # set of clusters
@@ -274,14 +276,24 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     change = 0
                 else
 
-                    # Znew = copy(Z)
-                    # Znew[i] = Cj_ind
-                    # voldiff1 = -second_term_eval(H, Znew, Ω; bigInt = bigInt)+second_term_eval(H, Z, Ω; bigInt = bigInt)
-                    # cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω)
+                    Znew = copy(Z)
+                    Znew[i] = Cj_ind
+                    voldiff1 = -second_term_eval(H, Znew, Ω; bigInt = bigInt,α=α )+second_term_eval(H, Z, Ω; bigInt = bigInt, α=α)
+                    cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω; α=α)
 
                     voldiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
                     cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
-                    change =  cdiff + voldiff
+                    # @show -voldiff1, voldiff
+                    # @show cdiff1, cdiff
+                    if abs(voldiff1 + voldiff) > 1e-10
+                        @show voldiff1 + voldiff
+                    end
+
+                    if abs(cdiff1 - cdiff) > 1e-10
+                        @show i
+                        @show cdiff1 - cdiff
+                    end
+                    change =  cdiff - voldiff
                 end
 
                 # Check if this is currently the best possible greedy move to make
@@ -538,6 +550,185 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     return Z, changemade
 end
 
+
+function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+    """
+    A Louvain step, but starting with all nodes in an arbitrary initial cluster
+    assignment Z. Louvain only considers moving an entire cluster at once.
+    Running this code with Z = collect(1:n) is equivalent to HypergraphLouvain
+
+    This is a naive first version of the code, which doesn't do anything
+    smart about being careful which clusters to even consider moving to.
+
+    H: hypergraph
+    Z: initial cluster assingment as a length n vector
+    Ω: group interaction function, as constructed by ΩFromDict(D)
+    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended.
+    return: Z::array{Int64, 1}: array of group labels.
+    """
+    # Begin by converting to alternative hypergraph storage
+    Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
+    node2edges = EdgeMap(H)             # node to hyperedge list
+    n = length(H.D)
+    println("")
+
+    # All nodes start in singleton clusters
+    Z = renumber(Z)
+
+    sn = maximum(Z) # number of supernodes
+
+    # Also store as cluster list
+    Clusters = Vector{Vector{Int64}}()
+    for j = 1:sn
+        push!(Clusters, Vector{Int64}())
+    end
+    for v = 1:n
+        push!(Clusters[Z[v]],v) # put node v in cluster Z[v]
+    end
+    SuperNodes = deepcopy(Clusters)
+
+    # Store indices of supernodes that neighbor each supernode
+    Neighbs = SuperNeighborList(Hyp, SuperNodes,n)
+
+    # There's a very subtle difference between the initial clustering,
+    # which defines a set of supernodes, and the current clustering that
+    # is being built by Louvain. Supernodes don't change--they move as a unit.
+    # Clusters change.
+
+    improving = true
+    iter = 0
+    changemade = false
+
+    # Code for fast local changes in volumes
+    r = kmax
+    V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
+    C = evalConstants(r)
+    Cts = evalCuts(Z,H)
+
+    while improving && iter < maxits
+
+        iter += 1
+        if mod(iter,1) == 0
+            println("Louvain Iteration $iter")
+        end
+        improving = false
+
+        # visit each supernode in turn
+        for i = 1:sn
+
+            # Get indices associated with this supernode
+            S = SuperNodes[i]
+
+            # Grab a "representative" node from this supernode
+            rep = S[1]
+
+            # Get the cluster associated with this supernode
+            Ci_ind = Z[rep]
+
+            # Get the indices of nodes in this cluster
+            Ci = Clusters[Ci_ind]
+
+            # Get all supernodes that neighbor this supernode
+            Ni = Neighbs[i]
+
+            # Then get all the clusters of neighboring supernodes
+            NC = Vector{Int64}()
+            for ni in Ni
+                push!(NC,Z[SuperNodes[ni][1]])
+            end
+
+            # do something naive first: just check move to all other clusters
+            # NC = collect(1:length(Clusters))
+
+            # The default is to not move the cluster
+            BestC = Ci_ind
+            BestImprove = 0
+            V_best = 0
+            μ_best = 0
+            M_best = 0
+
+            # Now let's see if it's better to move to a nearby cluster, Cj
+            for j = 1:length(NC)
+                Cj_ind = NC[j]
+
+                # Check how much it would improve to move i to to cluster j
+                if Cj_ind == Ci_ind
+                    change = 0
+                else
+
+                    # Compute change in modularity a few ways. Compare.
+
+                    # Option 1: fully naive
+                    Znew = copy(Z)
+                    # Move the entire supernode to the new cluster
+                    Znew[S] .= Cj_ind
+
+                    change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
+
+
+                    # Option 2: smart voldiff, naive cutdiff
+                    vdiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, S, Cj_ind, H.D, Z, C, Ω; α=α)
+                    cut1 = first_term_eval(H, Z, Ω; α=α)
+                    cut2 = first_term_eval(H, Znew, Ω; α=α)
+                    cdiff = cut2-cut1
+                    change2 = cdiff-vdiff
+
+                    # Option 3: smarter approach to both
+                    ΔC = cutDiff(Cts, S, Cj_ind, Z, Hyp, w, node2edges)
+                    cdiff2 = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
+
+                    change3 = cdiff2-vdiff
+
+                    # Check whether option 3 did the right thing
+                    if change != change3
+                        # @show change, change3, change2
+                        # @show cdiff2 - vdiff
+
+                        @show abs(change3-change), abs(change2-change)
+                        @assert(abs(change -change3) < 1e-10)
+                    end
+                end
+
+                # Check if this is currently the best possible greedy move to make
+                if change > BestImprove
+                    V_best = ΔV
+                    μ_best = Δμ
+                    M_best = ΔM
+                    BestImprove = change
+                    BestC = Cj_ind
+                    improving = true
+                end
+            end
+
+            # Move supernode i to the best new cluster, only if it strictly improves modularity
+            if BestImprove > 0
+
+                # increments
+                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
+
+                # update clustering
+                ci_old = Z[rep] # index of the old cluster
+                Z[S] .= BestC
+
+                # Remove all nodes from supernode i from their old cluster.
+                Clusters[ci_old] = setdiff(Clusters[ci_old],S)
+
+                # Add them to their new cluster
+                append!(Clusters[BestC],S)
+                changemade = true
+                improving = true # we have a reason to keep iterating!
+
+                # Naive update of cuts
+                # Phil-- is there an analog of "addIncrements" but for cuts?
+                Cts = evalCuts(Z,H)
+            end
+        end
+    end
+    Z, Clusters = renumber(Z,Clusters)
+    return Z, changemade
+end
+
+
 function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Running Louvain and then the super-node louvain steps until no more
@@ -564,7 +755,8 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     while changed
         phase += 1
         println("SuperNode Louvain: Phase $phase")
-        Z, changed = Naive_SuperNodeStep(H,Z,kmax,Ω;α=α0)
+        # Z, changed = Naive_SuperNodeStep(H,Z,kmax,Ω;α=α0)
+        Z, changed = Experimental_SuperNodeStep(H,Z,kmax,Ω;α=α0)
     end
 
     return Z
