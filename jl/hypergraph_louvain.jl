@@ -127,8 +127,6 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
         # visit each node in turn
         for i = 1:n
 
-            # println("NODE $i")
-
             # Cluster index for node i
             Ci_ind = Z[i]
 
@@ -137,7 +135,6 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 
             # Get the indices of i's neighbors--these define clusters we might move to
             Ni = Neighbs[i]
-
             # Get the neighboring clusters of i:
             # there are the only places we would even consider moving node i to
             NC = unique(Z[Ni])
@@ -158,10 +155,11 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
                     Znew = copy(Z)
                     Znew[i] = Cj_ind
                     change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
+
                 end
 
                 # Check if this is currently the best possible greedy move to make
-                if change > BestImprove
+                if change - BestImprove > 0
                     BestImprove = change
                     BestC = Cj_ind
                     improving = true
@@ -169,7 +167,8 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
             end
 
             # Move i to the best new cluster, only if it strictly improves modularity
-            if BestImprove > 1e-8
+            if BestImprove > 0
+
                 ci_old = Z[i]
                 Z[i] = BestC
 
@@ -233,7 +232,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     r = kmax
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
     C = evalConstants(r)
-
+    tdiff = 0
     while improving && iter < maxits
 
         iter += 1
@@ -255,7 +254,6 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 
             # Get the indices of i's neighbors--these define clusters we might move to
             Ni = Neighbs[i]
-
             # Get the neighboring clusters of i:
             # there are the only places we would even consider moving node i to
             NC = unique(Z[Ni])
@@ -270,34 +268,27 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
             # Now let's see if it's better to move to a nearby cluster, Cj
             for j = 1:length(NC)
                 Cj_ind = NC[j]
-
                 # Check how much it would improve to move i to to cluster j
                 if Cj_ind == Ci_ind
                     change = 0
                 else
-
-                    Znew = copy(Z)
-                    Znew[i] = Cj_ind
-                    voldiff1 = -second_term_eval(H, Znew, Ω; bigInt = bigInt,α=α )+second_term_eval(H, Z, Ω; bigInt = bigInt, α=α)
-                    cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω; α=α)
+                    # Naive evaluation for debugging...
+                    # Znew = copy(Z)
+                    # Znew[i] = Cj_ind
+                    # voldiff1 = second_term_eval(H, Znew, Ω; bigInt = bigInt,α=α )-second_term_eval(H, Z, Ω; bigInt = bigInt, α=α)
+                    # cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω; α=α)
 
                     voldiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
-                    cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
-                    # @show -voldiff1, voldiff
-                    # @show cdiff1, cdiff
-                    if abs(voldiff1 + voldiff) > 1e-10
-                        @show voldiff1 + voldiff
-                    end
 
-                    if abs(cdiff1 - cdiff) > 1e-10
-                        @show i
-                        @show cdiff1 - cdiff
-                    end
+                    cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
+
                     change =  cdiff - voldiff
                 end
 
                 # Check if this is currently the best possible greedy move to make
-                if change > BestImprove
+                # The tolerance helps with making some behavior more stable:
+                #   you only move if there's a numerically nonzero reason to move.
+                if change - BestImprove > 1e-8
                     V_best = ΔV
                     μ_best = Δμ
                     M_best = ΔM
@@ -308,8 +299,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
             end
 
             # Move i to the best new cluster, only if it strictly improves modularity
-            if BestImprove > 0
-
+            if BestImprove > 1e-8
                 # increments
                 V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
 
@@ -331,6 +321,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     if ~changemade
         println("No nodes moved clusters")
     end
+    @show tdiff
     Z, Clusters = renumber(Z,Clusters)
     return Z
 
@@ -685,6 +676,7 @@ function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,�
                         # @show cdiff2 - vdiff
 
                         @show abs(change3-change), abs(change2-change)
+                        @show S, size(S)
                         @assert(abs(change -change3) < 1e-10)
                     end
                 end
