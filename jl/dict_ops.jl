@@ -1,4 +1,4 @@
-import Base: *, +
+import Base: *, +, -, /
 
 function *(d1::Dict, d2::Dict)
     """
