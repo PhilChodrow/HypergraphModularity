@@ -232,7 +232,6 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     r = kmax
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
     C = evalConstants(r)
-    tdiff = 0
     while improving && iter < maxits
 
         iter += 1
@@ -321,7 +320,6 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     if ~changemade
         println("No nodes moved clusters")
     end
-    @show tdiff
     Z, Clusters = renumber(Z,Clusters)
     return Z
 
@@ -370,6 +368,30 @@ function compute_voldiff2(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vecto
     end
 
     return voldiff, ΔV, Δμ, ΔM
+end
+
+
+
+function compute_moddiff(Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+    """
+    NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
+    """
+    # increments due to proposal
+    ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
+
+    voldiff = 0
+    for p in keys(M)
+        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
+    end
+
+    # are the keys of M and the keys of ΔC always the same? If so, we could
+    # maybe combine these pieces to make it faster
+
+    ΔC = cutDiff(Cts, I_, t, Z, Hyp, w, node2edges)
+    cdiff = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
+    mdiff = cdiff-voldiff
+
+    return mdiff, ΔV, Δμ, ΔM, ΔC
 end
 
 
@@ -541,8 +563,7 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     return Z, changemade
 end
 
-
-function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -628,15 +649,13 @@ function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,�
                 push!(NC,Z[SuperNodes[ni][1]])
             end
 
-            # do something naive first: just check move to all other clusters
-            # NC = collect(1:length(Clusters))
-
             # The default is to not move the cluster
             BestC = Ci_ind
             BestImprove = 0
             V_best = 0
             μ_best = 0
             M_best = 0
+            C_best = 0
 
             # Now let's see if it's better to move to a nearby cluster, Cj
             for j = 1:length(NC)
@@ -646,39 +665,7 @@ function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,�
                 if Cj_ind == Ci_ind
                     change = 0
                 else
-
-                    # Compute change in modularity a few ways. Compare.
-
-                    # Option 1: fully naive
-                    Znew = copy(Z)
-                    # Move the entire supernode to the new cluster
-                    Znew[S] .= Cj_ind
-
-                    change = modularity(H,Znew,Ω;α=α) - modularity(H,Z,Ω;α=α)
-
-
-                    # Option 2: smart voldiff, naive cutdiff
-                    vdiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, S, Cj_ind, H.D, Z, C, Ω; α=α)
-                    cut1 = first_term_eval(H, Z, Ω; α=α)
-                    cut2 = first_term_eval(H, Znew, Ω; α=α)
-                    cdiff = cut2-cut1
-                    change2 = cdiff-vdiff
-
-                    # Option 3: smarter approach to both
-                    ΔC = cutDiff(Cts, S, Cj_ind, Z, Hyp, w, node2edges)
-                    cdiff2 = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
-
-                    change3 = cdiff2-vdiff
-
-                    # Check whether option 3 did the right thing
-                    if change != change3
-                        # @show change, change3, change2
-                        # @show cdiff2 - vdiff
-
-                        @show abs(change3-change), abs(change2-change)
-                        @show S, size(S)
-                        @assert(abs(change -change3) < 1e-10)
-                    end
+                    change, ΔV, Δμ, ΔM, ΔC = compute_moddiff(Cts,Hyp, w, node2edges,V, μ, M, S, Cj_ind, H.D, Z, C, Ω; α=α)
                 end
 
                 # Check if this is currently the best possible greedy move to make
@@ -686,6 +673,7 @@ function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,�
                     V_best = ΔV
                     μ_best = Δμ
                     M_best = ΔM
+                    C_best = ΔC
                     BestImprove = change
                     BestC = Cj_ind
                     improving = true
@@ -720,14 +708,10 @@ function Experimental_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,�
     return Z, changemade
 end
 
-
 function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
-
-    This calls the naive version of the supernode step as a subroutine.
-    Not entirely clear how to make this faster though.
 
     H: hypergraph
     Ω: group interaction function, as constructed by ΩFromDict(D)
@@ -747,8 +731,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     while changed
         phase += 1
         println("SuperNode Louvain: Phase $phase")
-        # Z, changed = Naive_SuperNodeStep(H,Z,kmax,Ω;α=α0)
-        Z, changed = Experimental_SuperNodeStep(H,Z,kmax,Ω;α=α0)
+        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α0)
     end
 
     return Z

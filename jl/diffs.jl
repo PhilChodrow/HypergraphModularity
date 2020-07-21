@@ -30,8 +30,7 @@ function cutDiff(C, I, t, Z, Hyp, w, node2edges)
 
     Z_prop = copy(Z)
     Z_prop[I] .= t
-    for eid in E_id
-
+    for eid in E
         # get nodes in edge, and its weight
         e = Hyp[eid]
         we = w[eid]
