@@ -721,7 +721,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
 
     phase = 1
     println("SuperNode Louvain: Phase $phase")
-    Z = HyperLouvain(H,kmax,Ω;α=α0)
+    Z = HyperLouvain(H,kmax,Ω;α=α)
     n = length(Z)
 
     if maximum(Z) != n
@@ -731,7 +731,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     while changed
         phase += 1
         println("SuperNode Louvain: Phase $phase")
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α0)
+        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α)
     end
 
     return Z
