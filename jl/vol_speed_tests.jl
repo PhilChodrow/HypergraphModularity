@@ -7,14 +7,15 @@ include("HSBM.jl")
 include("hypergraph_louvain.jl")
 include("inference.jl");
 
-n = 200
+n = 300
 Z = rand(1:2, n)
 ϑ = dropdims(ones(1,n) + rand(1,n), dims = 1)
 
 # defining group intensity function Ω
 μ = mean(ϑ)
 
-ω(p,α) = (10 .*μ*sum(p))^(-sum(p))*prod(p.^α)^(1/(sum(p)*α))
+
+ω(p,α) = (15 .*μ*sum(p))^(-sum(p))*prod(p.^α)^(1/(sum(p)*α))
 α0 = 1
 
 kmax = 3
@@ -23,8 +24,8 @@ kmax = 3
 ## Sample
 H = sampleSBM(Z, ϑ, Ω; α=α0, kmax=kmax, kmin = 1)
 
-# @time Z = SuperNodeLouvain(H,kmax,Ω;α=α0)
+@time Ẑ = SuperNodeLouvain(H,kmax,Ω;α=α0)
 
-Juno.@profiler Ẑ = HyperLouvain(H,kmax,Ω;α=α0)
+# Juno.@profiler Ẑ = HyperLouvain(H,kmax,Ω;α=α0)
 
 Juno.@profiler Ẑ = SuperNodeLouvain(H,kmax,Ω;α=α0)
