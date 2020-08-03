@@ -29,7 +29,7 @@ function ω(p, α)
     length(p) == 1 ? (1.0*n)^(-α[k]) : (1.0*n)^(-α[kmax + k])
 end
 
-α0 = [1.0, 0.7, 2.1, 2.0, 1.0, 2.4]
+α0 = [10.0, 0.5, 10.6, 20.0, 1.2, 20.5]
 
 Ω = buildΩ(ω, α0, kmax)
 
@@ -39,7 +39,7 @@ println([(k, length(H.E[k])) for k in 1:kmax])
 
 for k = 1:3
     p = mean([length(partitionize(Z[e])) == 1 for e in keys(H.E[k])])
-    println("$(100*p) % of edges are within a single group.")
+    println("k = $k: $(100*p) % of edges are within a single group.")
 end
 
 ################################################################################
@@ -53,7 +53,7 @@ println("Warm start with $(length(unique(Z))) groups.")
 
 # compare to:
 
-Z = SuperNodeLouvain(H,kmax,Ω;α=α0)
+# Z = HyperLouvain(H,kmax,Ω;α=α0)
 
 ################################################################################
 # MAIN LOOP
@@ -93,7 +93,7 @@ function estimateParameters(H, Z, Ω, α0)
         println(-Optim.minimum(res))
         # optimization in γ
         for k = (kmax+1):(2*kmax)
-            res = optimize(a -> objective(α, a, k), -3.0, 3.0) # very slow and simple -- no gradient information
+            res = optimize(a -> objective(α, a, k), -100.0, 100.0) # very slow and simple -- no gradient information
             α[k] = Optim.minimizer(res)[1]
 
         end
@@ -109,11 +109,7 @@ end
 
 α, ll = estimateParameters(H, Z, Ω, α0)
 
-println(α0)
-
-println(α)
+HyperLouvain(H, kmax, Ω;α=α)
 
 
-#
-α, ll = estimateParameters(H, Z, Ω, α0)
 Z = SuperNodeLouvain(H,kmax,Ω;α=α)
