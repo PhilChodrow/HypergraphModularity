@@ -192,7 +192,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 end
 
 
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α, verbose=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -208,7 +208,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     node2edges = EdgeMap(H)             # node to hyperedge list
     convert = time()-start
     n = length(H.D)
-    println("")
+    if verbose println("") end
     # println("Took $convert seconds to convert to different hypergraph formats")
 
     # Store node neighbors of each node
@@ -236,7 +236,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 
         iter += 1
         if mod(iter,1) == 0
-            println("Louvain Iteration $iter")
+            if verbose println("Louvain Iteration $iter") end
         end
         improving = false
 
@@ -563,7 +563,7 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     return Z, changemade
 end
 
-function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -582,7 +582,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
     node2edges = EdgeMap(H)             # node to hyperedge list
     n = length(H.D)
-    println("")
+    if verbose println("") end
 
     # All nodes start in singleton clusters
     Z = renumber(Z)
@@ -621,7 +621,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
 
         iter += 1
         if mod(iter,1) == 0
-            println("Louvain Iteration $iter")
+            if verbose println("Louvain Iteration $iter") end
         end
         improving = false
 
@@ -708,7 +708,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=True)
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -720,8 +720,8 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     """
 
     phase = 1
-    println("SuperNode Louvain: Phase $phase")
-    Z = HyperLouvain(H,kmax,Ω;α=α)
+    if verbose println("SuperNode Louvain: Phase $phase") end
+    Z = HyperLouvain(H,kmax,Ω;α=α, verbose=verbose)
     n = length(Z)
 
     if maximum(Z) != n
@@ -730,8 +730,8 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
 
     while changed
         phase += 1
-        println("SuperNode Louvain: Phase $phase")
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α)
+        if verbose println("SuperNode Louvain: Phase $phase") end
+        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α,verbose=verbose)
     end
 
     return Z
