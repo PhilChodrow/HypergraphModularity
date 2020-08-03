@@ -60,6 +60,9 @@ function VanillaModularity(A::SparseMatrixCSC{Float64,Int64},randflag::Bool=fals
     """
 
     d = vec(sum(A,dims = 2))
+    
+    n = length(d)
+    
     vol = sum(d)
     lam = 1/vol
     Cs = LambdaLouvain(A,d,lam,randflag,maxits)
