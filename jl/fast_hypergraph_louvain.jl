@@ -5,7 +5,7 @@ include("hyper_format.jl")
 include("HSBM.jl")
 include("hyperlouvain_helpers.jl")
 
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -58,7 +58,9 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; println("Louvain Iteration $iter") end
+        if mod(iter,1) == 0; 
+            if verbose println("Louvain Iteration $iter") end
+        end
         improving = false
 
         for i = 1:n                     # visit each node in turn
@@ -131,7 +133,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     end
 
     if ~changemade
-        println("No nodes moved clusters")
+        if verbose println("No nodes moved clusters") end
     end
     Z, Clusters = renumber(Z,Clusters)
     return Z
@@ -158,7 +160,7 @@ function compute_moddiff(edge2part,Cts,Hyp,w,node2edges,V::Array, μ::Array, M::
 end
 
 
-function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -190,7 +192,9 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     tic = time()
     Neighbs = SuperNeighborList(Hyp, SuperNodes,n)
     toc = time()-tic
-    @show toc
+    if verbose
+        @show toc
+    end
 
     # Note: There's a very subtle difference between the initial clustering,
     # which defines a set of supernodes, and the current clustering that
@@ -218,7 +222,9 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; println("Louvain Iteration $iter") end
+        if mod(iter,1) == 0; 
+            if verbose println("Louvain Iteration $iter") end
+        end
         improving = false
 
 
@@ -307,11 +313,13 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
         end
     end
     Z, Clusters = renumber(Z,Clusters)
-    @show t1
+    if verbose
+        @show t1
+    end
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -323,8 +331,8 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     """
 
     phase = 1
-    println("Faster SuperNode Louvain: Phase $phase")
-    Z = HyperLouvain(H,kmax,Ω;α=α)
+    if verbose println("Faster SuperNode Louvain: Phase $phase") end
+    Z = HyperLouvain(H,kmax,Ω;α=α,verbose=verbose)
     n = length(Z)
 
     changed = false
@@ -334,15 +342,15 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
 
     while changed
         phase += 1
-        println("SuperNode Louvain: Phase $phase")
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α)
+        if verbose println("SuperNode Louvain: Phase $phase") end
+        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α,verbose=verbose)
     end
 
     return Z
 end
 
 
-function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α)
+function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=verbose)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -387,7 +395,9 @@ function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::B
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; println("Louvain Iteration $iter") end
+        if mod(iter,1) == 0; 
+            if verbose println("Louvain Iteration $iter") end
+        end
         improving = false
 
         for i = 1:n                     # visit each node in turn
@@ -463,7 +473,7 @@ function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::B
     end
 
     if ~changemade
-        println("No nodes moved clusters")
+        if verbose println("No nodes moved clusters") end
     end
     Z, Clusters = renumber(Z,Clusters)
     return Z
