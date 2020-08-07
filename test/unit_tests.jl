@@ -1,13 +1,15 @@
 using Test
-using Combinatorics
-using Random
+# using Combinatorics
+# using Random
 
-include("vol.jl")
-include("cut.jl")
-include("omega.jl")
-include("HSBM.jl")
-include("objectives.jl")
+# include("vol.jl")
+# include("cut.jl")
+# include("omega.jl")
+# include("HSBM.jl")
+# include("objectives.jl")
 include("test_funs.jl")
+
+using HypergraphModularity
 
 Random.seed!(4321)
 
