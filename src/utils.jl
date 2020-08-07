@@ -1,5 +1,3 @@
-using StatsBase
-
 function partitionize(a::Vector{<:Integer})
     """
     For a given integer vector a, return the partition corresponding to that
@@ -29,7 +27,7 @@ end
 
 function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
     p = partitionize(z)
-    return multinomial(p...)
+    return Combinatorics.multinomial(p...)
 end
 
 function poisson_pdf(x::Integer, λ::Float64)

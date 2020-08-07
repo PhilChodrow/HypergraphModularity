@@ -1,9 +1,3 @@
-using StatsBase
-using Combinatorics
-
-include("HSBM.jl")
-include("vol.jl")
-
 function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     """
     aggregator groups partitions to new keys, upon which ω̂ is estimated (default: no aggregation)
@@ -97,13 +91,13 @@ function estimateParameters(H, Z, Ω, α0)
 #         println(-Optim.minimum(res))
         # optimization in γ
         for k = (kmax+1):(2*kmax)
-            res = optimize(a -> objective(α, a, k), -100.0, 100.0) # very slow and simple -- no gradient information
+            res = Optim.optimize(a -> objective(α, a, k), -100.0, 100.0) # very slow and simple -- no gradient information
             α[k] = Optim.minimizer(res)[1]
 
         end
         # optimizationin β
         for k = 1:kmax
-            res = optimize(a -> objective(α, a, k), -100, 100)
+            res = Optim.optimize(a -> objective(α, a, k), -100, 100)
             α[k] = Optim.minimizer(res)[1]
         end
     end

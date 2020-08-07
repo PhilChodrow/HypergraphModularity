@@ -1,5 +1,3 @@
-
-
 function evalCuts(Z::Array{Int64,1}, H::hypergraph)
     """
     Gets map from partition type to the number of times that partition type
@@ -116,8 +114,8 @@ function SuperNeighborList(Hyp, SuperNodes,n)
     end
 
     # binary (unweighted) supernodes-by-edges incidence matrix
-    Hnew = sparse(J,I,ones(length(I)),m,sn)
-    Neighbs = NeighborList(Hnew, sparse(Hnew'))
+    Hnew = SparseArrays.sparse(J,I,ones(length(I)),m,sn)
+    Neighbs = NeighborList(Hnew, SparseArrays.sparse(Hnew'))
     return Neighbs
 end
 
