@@ -81,7 +81,7 @@ function CutDiff_OneNode(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges
         p = partitionize(clus_e)
         om_z = Ω(p; α=α, mode="partition")
         Δpen[i] = w[i]*log(om_z)   # new penalty if this move is made
-        obj += w[i]*log(om_z)-edge2penalty[i]
+        obj += Δpen[i]-edge2penalty[i]
 
     end
     c[I] = orig
