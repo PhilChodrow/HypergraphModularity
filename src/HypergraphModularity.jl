@@ -37,6 +37,7 @@ export sampleSBM
 
 export counting_coefficient
 
+export CliqueExpansion
 export CliqueExpansionModularity
 export HyperLouvain
 export SuperNodeLouvain
