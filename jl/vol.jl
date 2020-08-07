@@ -36,27 +36,7 @@ function correctOvercounting(M::Dict{Vector{Int64},<:Integer}, p::Vector{Int64})
     return(S)
 end
 
-function computeMoments_(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
-    """
-    Compute the vectors V of group volumes and μ of volume-moments.
-    No reason to call this outside of evalSums()
-    Z::Vector{Int64}, the vector of cluster labels.
-    D::Vector{Int64}, the degree sequence
-    r::Int64, the size of the largest hyperedge
-    ℓ::Int64, the number of groups (defaults to maximum(Z))
-    returns V::Array{Int64, 1} the vector of group volumes and μ::Vector{Int64} of volume-moments.
-    NOTE: might want to implement bigInts in μ
-    """
-    if ℓ==0
-        ℓ=maximum(Z)
-    end
-
-    V = [sum(D.*(Z .== j)) for j in 1:ℓ]
-    μ = [sum(V.^i) for i = 1:r]
-    return(V, μ)
-end
-
-function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Int64, ℓ::Int64=0)
+function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Integer, ℓ::Integer=0)
     """
     Compute the vectors V of group volumes and μ of volume-moments.
     No reason to call this outside of evalSums()
@@ -100,7 +80,7 @@ function evalConstants(r::Int64; bigInt::Bool=true)
     return(C)
 end;
 
-function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64; constants::Bool=true, ℓ::Int64=0, bigInt::Bool=true)
+function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants::Bool=true, ℓ::Integer=0, bigInt::Bool=true)
     """
     Z::Array{Int64, 1} the vector of integer group labels
     D::Array{Int64, 1} the vector of degrees
@@ -134,11 +114,11 @@ end
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class.
 
-function evalSums(Z::Vector{Int64}, D::Vector{Int64}, r::Int64, ℓ::Int64=0, bigInt::Bool=true)
+function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer, ℓ::Integer=0, bigInt::Bool=true)
     return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
 end
 
-function evalSums(Z::Vector{Int64}, H::hypergraph, ℓ::Int64=0, bigInt::Bool=true)
+function evalSums(Z::Vector{<:Integer}, H::hypergraph, ℓ::Integer=0, bigInt::Bool=true)
     r = maximum(keys(H.E))
     return evalSums(Z, H.D, r, ℓ, bigInt)
 end
@@ -171,7 +151,7 @@ function momentIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, i::Int64,
     return ΔV, Δμ
 end
 
-function momentIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, I_::Vector{Int64}, t::Int64, D::Vector{<:Integer}, Z::Vector{<:Integer})
+function momentIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, I_::Vector{<:Integer}, t::Integer, D::Vector{<:Integer}, Z::Vector{<:Integer})
     """
     Compute the update for the vectors V and μ associated with moving all the nodes listed in I from their group to group t.
     THIS CODE ASSUMES THAT THE NODES IN I ARE ALL IN THE SAME GROUP, AND WILL GIVE INCORRECT RESULTS OTHERWISE.
@@ -199,7 +179,7 @@ function momentIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, I_::Vecto
     return ΔV, Δμ
 end
 
-function increments(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{Int64},<:Integer}, I_::T, t::Int64, D::Vector{<:Integer}, Z::Vector{<:Integer}; bigInt::Bool=true) where T <: Union{Int64, Vector{Int64}}
+function increments(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{Int64},<:Integer}, I_::T, t::Integer, D::Vector{<:Integer}, Z::Vector{<:Integer}; bigInt::Bool=true) where T <: Union{<:Integer, Vector{<:Integer}}
     """
     Compute the update for the vectors V and μ, as well as the uncorrected sums M, associated with moving node(s) I from its current group to group t.
     THIS CODE ASSUMES THAT THE NODES IN I ARE ALL IN THE SAME GROUP, AND WILL GIVE INCORRECT RESULTS OTHERWISE.
@@ -244,7 +224,7 @@ end
 # COMPLETE COMPUTATION OF SECOND (VOLUME) TERM IN MODULARITY
 # ------------------------------------------------------------------------------
 
-function second_term_eval(H::hypergraph, Z::Vector{Int64}, Ω::Any; α, ℓ::Int64 = 0, bigInt::Bool=true)
+function second_term_eval(H::hypergraph, Z::Vector{<:Integer}, Ω::Any; α, ℓ::Int64 = 0, bigInt::Bool=true)
     """
     Naive implementation, computes sums from scratch.
     H::hypergraph

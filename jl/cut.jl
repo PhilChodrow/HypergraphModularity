@@ -5,7 +5,7 @@ include("utils.jl")
 include("hyper_format.jl")
 
 
-function first_term_eval(H::hypergraph,c::Array{Int64,1}, Ω; α)
+function first_term_eval(H::hypergraph,c::Array{<:Integer,1}, Ω; α)
     """
     Not optimized, goal is to make this as quick and easy as
     possible using existing code.
@@ -131,7 +131,7 @@ end
 
 function first_term_v3(Z::Array{Int64,1},H::hypergraph, Ω; α)
     """
-    This function may be slightly more efficient than v2 due to the fact that we multiply by log Ω fewer times. It is here primarily as a check on evalCuts, which has independent significance in the context of learning parameterized versions of Ω. 
+    This function may be slightly more efficient than v2 due to the fact that we multiply by log Ω fewer times. It is here primarily as a check on evalCuts, which has independent significance in the context of learning parameterized versions of Ω.
     """
     C = evalCuts(Z, H)
     sum(C[p]*log(Ω(p; α=α, mode="partition")) for p in keys(C))

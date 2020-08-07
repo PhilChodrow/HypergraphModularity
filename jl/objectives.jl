@@ -2,7 +2,7 @@ include("utils.jl")
 include("cut.jl")
 include("vol.jl")
 
-function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true)
+function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
     """
     Compute the modularity of a partition Z in a hypergraph H with interaction function Ω.
     H::hypergraph: the input hypergraph
@@ -18,7 +18,7 @@ function modularity(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true
     return cut - vol
 end
 
-function parameterEstimateObjective(H::hypergraph, Z::Array{Int64, 1}, Ω; ℓ::Int64 = 0, bigInt::Bool=true)
+function parameterEstimateObjective(H::hypergraph, Z::Array{<:Integer, 1}, Ω; ℓ::Int64 = 0, bigInt::Bool=true)
     """
     An efficient way to compute the modularity objective for varying intensity function parameter α, useful for learning α from partitions.
     Probably there is a better way to implement this via currying.
@@ -47,7 +47,7 @@ end
 
 
 
-function L(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true)
+function L(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.
     H::hypergraph: the input hypergraph
@@ -81,7 +81,7 @@ function L(H::hypergraph, Z::Array{Int64, 1}, Ω; α, bigInt::Bool=true)
     return Q, K, C
 end
 
-function logLikelihood(H::hypergraph, Z::Array{Int64,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1); α)
+function logLikelihood(H::hypergraph, Z::Array{<:Integer,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1); α)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.
     This function is VERY slow and should generally only be used for testing purposes.

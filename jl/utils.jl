@@ -1,33 +1,31 @@
 using StatsBase
 
-function partitionize2(z::Array{T, 1}) where {T<:Integer}
+function partitionize(a::Vector{<:Integer})
     """
-    For a given integer vector z, return the partition corresponding to that vector. Useful for both counting corrections when sampling and computing likelihoods, and when computing partition-based values of Ω. 
-    DEPRECATED: much slower than partitionize() below. 
-    """
-    p = collect(values(countmap(z)))
-    sort!(p, rev=true)
-end
+    For a given integer vector a, return the partition corresponding to that
+    vector. Useful for both counting corrections when sampling and computing
+    likelihoods, and when computing partition-based values of Ω.
 
-function partitionize(a::Array{Int64,1})
+    This is the fastest version I could come up with.
     """
-    For a given integer vector z, return the partition corresponding to that vector. Useful for both counting corrections when sampling and computing likelihoods, and when computing partition-based values of Ω. 
-    """
+    a = sort(a)
     k = length(a)
-    u = unique(a)
-    d = Dict()
-    lu = length(u)
-    for j = 1:lu
-        d[u[j]] = j
-    end
-    cnts = zeros(Int, lu)
-    for i = 1:k
-        @inbounds x = a[i]
-        @inbounds cnts[d[x]] += 1
-    end
-    return sort(cnts,rev = true)
-end
+    v = zero(a)
 
+    v[1] = 1
+    current = 1
+
+    for i = 2:k
+        if a[i] == a[i-1]
+            v[current] += 1
+        else
+            current += 1
+            v[current] = 1
+        end
+    end
+    v = v[v.>0]
+    return sort(v, rev = true)
+end
 
 function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
     p = partitionize(z)
@@ -35,7 +33,5 @@ function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
 end
 
 function poisson_pdf(x::Integer, λ::Float64)
-    exp(-λ)*λ^x/factorial(x) 
+    exp(-λ)*λ^x/factorial(x)
 end
-
-    

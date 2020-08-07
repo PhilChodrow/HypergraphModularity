@@ -1,27 +1,4 @@
-function partitionize(a::Array{Int64,1})
-    """
-    For a given integer vector a, return the partition corresponding to that
-    vector. Useful for both counting corrections when sampling and computing
-    likelihoods, and when computing partition-based values of Ω.
 
-    This is the fastest version I could come up with.
-    """
-    k = length(a)
-    d = Dict{Int64,Int64}()
-    d[a[1]] = 1     # dictionary from cluster index to id in vector v
-    next = 2
-    v = [1]         # number of times the cluster index shows up
-    for i = 2:k
-        ind = get(d, a[i], next)
-        if ind == next
-            push!(v,1)
-            next += 1
-        else
-            v[ind] += 1
-        end
-    end
-    return sort(v,rev = true)
-end
 
 function evalCuts(Z::Array{Int64,1}, H::hypergraph)
     """
