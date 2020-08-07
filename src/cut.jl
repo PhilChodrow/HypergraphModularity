@@ -1,9 +1,4 @@
-using Combinatorics
-include("omega.jl")
-include("HSBM.jl")
-include("utils.jl")
 include("hyper_format.jl")
-
 
 function first_term_eval(H::hypergraph,c::Array{<:Integer,1}, Ω; α)
     """

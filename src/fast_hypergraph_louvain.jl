@@ -1,10 +1,3 @@
-using Random
-using SparseArrays
-
-include("hyper_format.jl")
-include("HSBM.jl")
-include("hyperlouvain_helpers.jl")
-
 function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move

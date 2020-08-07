@@ -1,12 +1,6 @@
-using StatsBase
-
-include("utils.jl")
-
 """
 Throughout the docstrings, n gives the number of nodes. 
 """
-
-export plantedPartition
 
 function buildΩ(f, α0, kmax)
     """
@@ -16,13 +10,13 @@ function buildΩ(f, α0, kmax)
     """
     # memoization
     ᾱ = α0
-    Om = Dict(k => Dict(p => f(p,ᾱ) for p in partitions(k)) for k = 1:kmax)
+    Om = Dict(k => Dict(p => f(p,ᾱ) for p in Combinatorics.partitions(k)) for k = 1:kmax)
     function Ω(x; α, mode="group")
         
         # check if the parameter has been updated and re-memoize if so
         if !(α ≈ ᾱ)
             ᾱ = α
-            Om = Dict(k => Dict(p => f(p,ᾱ) for p in partitions(k)) for k = 1:kmax)
+            Om = Dict(k => Dict(p => f(p,ᾱ) for p in Combinatorics.partitions(k)) for k = 1:kmax)
         end
         
         # otherwise, return required value from Om

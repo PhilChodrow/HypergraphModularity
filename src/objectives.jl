@@ -1,6 +1,3 @@
-include("utils.jl")
-include("cut.jl")
-include("vol.jl")
 
 function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
     """
@@ -98,7 +95,7 @@ function logLikelihood(H::hypergraph, Z::Array{<:Integer,1}, Ω::Any, ϑ::Array{
     end
 
     for k in keys(H.E)
-        T = with_replacement_combinations(1:n, k)
+        T = Combinatorics.with_replacement_combinations(1:n, k)
         Ek = H.E[k]
         for S in T
 

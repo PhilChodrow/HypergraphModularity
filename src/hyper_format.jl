@@ -1,10 +1,7 @@
 # These are some useful functions for converting back and forth between
 # different ways to store hypergraphs.
 
-using SparseArrays
-using LinearAlgebra
-
-function NeighborList(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Float64,Int64})
+function NeighborList(He2n::SparseArrays.SparseMatrixCSC{Float64,Int64},Hn2e::SparseArrays.SparseMatrixCSC{Float64,Int64})
     """
     NeighborList: given hypergraph (edge x node) indicence and (node x edge)
     incidence, return a list of neighbors for each node.
@@ -56,7 +53,7 @@ function NeighborList(node2edge::Vector{Vector{Int64}},edge2node::Vector{Vector{
     return Neighbs
 end
 
-function getedges(He2n::SparseMatrixCSC{Float64,Int64},I::Int64)
+function getedges(He2n::SparseArrays.SparseMatrixCSC{Float64,Int64},I::Int64)
     """
     Given the edge-by-node incidence matrix He2n, return the set of hyperedges
     that node I is in.
@@ -68,7 +65,7 @@ function getedges(He2n::SparseMatrixCSC{Float64,Int64},I::Int64)
     return edges
 end
 
-function getnodes(Hn2e::SparseMatrixCSC{Float64,Int64},J::Int64)
+function getnodes(Hn2e::SparseArrays.SparseMatrixCSC{Float64,Int64},J::Int64)
     """
     Given the node-by-edge incidence matrix Hn2e, return the set of nodes
     contained in hyperedge J
@@ -89,7 +86,7 @@ function getnodes(Hn2e::SparseMatrixCSC{Float64,Int64},J::Int64)
     return edge
 end
 
-function incidence2elist(H::SparseMatrixCSC{Float64,Int64},nodelist::Bool=false)
+function incidence2elist(H::SparseArrays.SparseMatrixCSC{Float64,Int64},nodelist::Bool=false)
     """
     This converts a hypergraph in incidence matrix form to hyperedge list form.
     Incidence matrix form:  H[e,u] = 1  iff node u is in hyperedge e
@@ -99,7 +96,7 @@ function incidence2elist(H::SparseMatrixCSC{Float64,Int64},nodelist::Bool=false)
     """
     if ~nodelist
         # unless you want the node2edge map, transpose first
-        H = sparse(H')
+        H = SparseArrays.sparse(H')
     end
     rp = H.rowval
     ci = H.colptr
@@ -143,7 +140,7 @@ function elist2incidence(Hyperedges::Vector{Vector{Int64}}, N::Int64)
         end
     end
 
-    H = sparse(E,U,ones(length(U)),M,N)
+    H = SparseArrays.sparse(E,U,ones(length(U)),M,N)
     return H
 end
 

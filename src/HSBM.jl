@@ -1,16 +1,8 @@
-using Distributions
-using Base 
-using Combinatorics
-using Parameters
-
-include("omega.jl")
-
-
 """
 The purpose of this module is to define a flexible stochastic blockmodel for hypergraphs. At this stage, all we are aiming to do is *sample* from the model give a partition, a group intensity function, and a degree vector. 
 """
 
-@with_kw mutable struct hypergraph
+Parameters.@with_kw mutable struct hypergraph
     """
     A very simple hypergraph composite type, designed to hold a node list N, an edge list E, a degree sequence D, 
     """
@@ -35,7 +27,7 @@ function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω:
     
     # combinatorial factor associated with repeated indices. Equivalent to sampling a separate Poisson for each of the c distinct permutations of the node labels S
     c = counting_coefficient(S)    
-    X = Poisson(prod(θ)*Ω(z; α=α, mode="group")*c)
+    X = Distributions.Poisson(prod(θ)*Ω(z; α=α, mode="group")*c)
     return(rand(X))
 end
 
@@ -50,7 +42,7 @@ function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any, km
     n = length(Z)           # number of nodes inferred from group labels
     
     for k in kmin:kmax
-        T = with_replacement_combinations(1:n, k) # all distinct combos of k nodes
+        T = Combinatorics.with_replacement_combinations(1:n, k) # all distinct combos of k nodes
         Ek = Dict{Vector{Int64}, Int64}()         # list of edges of size k 
         for S in T
             X = sampleEdge(S, Z, ϑ, Ω; α=α)
