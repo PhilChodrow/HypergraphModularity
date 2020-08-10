@@ -1,5 +1,6 @@
 # Warm-start
-
+include("graph_louvain.jl")
+include("HSBM.jl")
 
 function CliqueExpansion(H::hypergraph,weighted::Bool=true)
     """
@@ -29,10 +30,10 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true)
             end
         end
     end
-    A = SparseArrays.sparse(I,J,V,n,n)
+    A = sparse(I,J,V,n,n)
     for i = 1:n; A[i,i] = 0.0; end
-    SparseArrays.dropzeros!(A)
-    A = SparseArrays.sparse(A+A')
+    dropzeros!(A)
+    A = sparse(A+A')
     return A
 
 end
@@ -47,11 +48,7 @@ function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1,weighted::Bool
 end
 
 
-<<<<<<< HEAD:jl/warmstart.jl
 function VanillaModularity(A::SparseMatrixCSC{Float64,Int64},gamma::Float64=1,randflag::Bool=false,maxits::Int64=10000)
-=======
-function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},randflag::Bool=false,maxits::Int64=10000)
->>>>>>> 65d26ce78eef2234bfcb99881bd1297e359caac7:src/warmstart.jl
     """
     Vanilla modularity algorithm, obtained by calling the LambdaLouvain algorithm
     implementation from:
@@ -63,9 +60,6 @@ function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},randfl
     """
 
     d = vec(sum(A,dims = 2))
-    
-    n = length(d)
-    
     vol = sum(d)
     lam = gamma/vol
     Cs = LambdaLouvain(A,d,lam,randflag,maxits)
