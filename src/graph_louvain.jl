@@ -228,7 +228,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
     # This permutes the node labels, to add randomization in the Louvain
     # algorithm so that you don't always traverse the nodes in the same order
     if randflag
-        p = randperm(n)
+        p = Random.randperm(n)
         A = A[p,p]
         undop = sortperm(p)
         w = w[p]

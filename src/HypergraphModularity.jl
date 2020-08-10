@@ -31,6 +31,7 @@ include("hyperlouvain_helpers.jl")
 include("fast_hypergraph_louvain.jl")
 # include("hypergraph_louvain.jl") # PC: this is deprecated now, right? 
 include("read_data.jl")
+include("analysis_helpers.jl")
 
 export partitionize
 export sampleSBM
@@ -66,9 +67,9 @@ export first_term_v3
 
 export logLikelihood
 export modularity
-export parameterEstimateObjective
+export formObjective
 
-export estimateParameters
+export coordinateAscent
 
 export estimateΩEmpirically
 
@@ -76,5 +77,9 @@ export read_hypergraph_data
 
 export L
 
+export downSampleEdges!
+
+export computeDyadicResolutionParameter
+export dyadicModularity
 
 end # module

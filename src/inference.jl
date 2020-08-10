@@ -56,51 +56,24 @@ function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     return Ω̂
 end
 
-function estimateParameters(H, Z, Ω, α0)
-    """
-    Currently assumes that the parameter vector has 2*kmax entries, and that the first and second halves of the parameter vector mean meaningfully different things.
-    VERY JANKY ATM.
-    """
+function coordinateAscent(H, Z, Ω, α0; n_iters = 10)
+    
+    kmax = length(α0) ÷ 2
 
-    ℓ = maximum(k for k in keys(H.E)) # size of largest hyperedge
+    modularityObjective = formObjective(H, Z, Ω)
 
-    C       = evalCuts(Z,H)
-    V, μ, S = evalSums(Z,H,ℓ,true);
-
-    α = copy(α0)
-    kmax = length(α)÷2
-
-    res = 0
-
-    function objective(α)
-        obj = 0.0
-        for p in keys(S)
-            Op   = Ω(p; α=α, mode="partition")
-            obj += get(C, p, 0)*log(Op) - S[p]*Op
-        end
-        return -Float64(obj, RoundDown) # sign is for minimization
-    end
-
-    function objective(α, a, k)
+    function G(a, α, k)
         α_ = copy(α)
         α_[k] = a[1]
-        return objective(α_)
+        return modularityObjective(α_)
     end
 
-    for i = 1:50
-#         println(-Optim.minimum(res))
-        # optimization in γ
-        for k = (kmax+1):(2*kmax)
-            res = Optim.optimize(a -> objective(α, a, k), -100.0, 100.0) # very slow and simple -- no gradient information
-            α[k] = Optim.minimizer(res)[1]
-
-        end
-        # optimizationin β
-        for k = 1:kmax
-            res = Optim.optimize(a -> objective(α, a, k), -100, 100)
-            α[k] = Optim.minimizer(res)[1]
-        end
+    α = copy(α0);
+    
+    for i = 1:n_iters, k = 1:(2*kmax)
+        res = Optim.optimize(a -> G(a, α, k),  0, 10) # very slow and simple -- no gradient information
+        α[k] = Optim.minimizer(res)[1]
     end
-
-    return α, -Optim.minimum(res)
+    
+    return(α)
 end
