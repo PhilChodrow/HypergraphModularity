@@ -38,7 +38,7 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true)
 
 end
 
-function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1,weighted::Bool=true)
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.
@@ -48,7 +48,7 @@ function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1,weighted::Bool
 end
 
 
-function VanillaModularity(A::SparseMatrixCSC{Float64,Int64},gamma::Float64=1,randflag::Bool=false,maxits::Int64=10000)
+function VanillaModularity(A::SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,maxits::Int64=10000)
     """
     Vanilla modularity algorithm, obtained by calling the LambdaLouvain algorithm
     implementation from:
