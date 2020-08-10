@@ -1,6 +1,3 @@
-using Random
-using SparseArrays
-
 """
 ConstructAdj: Construct Adjacency List
 This takes in a sparse adjacency matrix for a graph, and returns an adjacency
@@ -11,7 +8,7 @@ get a list of neighbors for each node.
 The function also returns the degree vector d. This is NOT the weighted degree,
     d[i] = total number of neighbors of node i
 """
-function ConstructAdj(C::SparseMatrixCSC,n::Int64)
+function ConstructAdj(C::SparseArrays.SparseMatrixCSC,n::Int64)
     rp = C.rowval
     ci = C.colptr
     Neighbs = Vector{Vector{Int64}}()
@@ -41,7 +38,7 @@ lam = resolution paramter
 This can be replaced with our function for checking the hypergraph modularity
 objective.
 """
-function LamCCobj(A::SparseMatrixCSC,c,w,lam)
+function LamCCobj(A::SparseArrays.SparseMatrixCSC,c,w,lam)
 
     w_volA = sum(w) # weighted volume
     obj = (lam*(w_volA)^2-lam*sum(w.^2))/2 # constant with respect to the clustering
@@ -116,7 +113,7 @@ end
 """
 Run the Louvain algorithm many times, taking the result with the best objective.
 """
-function Many_Louvain(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,numtimes::Int64,maxits::Int64=10000)
+function Many_Louvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,numtimes::Int64,maxits::Int64=10000)
 
     n = size(A,1)
     BestObj = Inf
@@ -154,9 +151,9 @@ associated with the modularity objective.
 w = weights function, w[i] = weight for node i. This is often the degree of node
     i, but doesn't have to be.
 """
-function LambdaLouvain(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=10000)
+function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=10000)
 
-    @assert(issymmetric(A))
+    @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
 
     # Step 1: greedy moves until no more improvement
@@ -223,15 +220,15 @@ end
 Run Step 1 of the Louvain algorithm: iterate through nodes and greedily move
 nodes to adjacent clusters.
 """
-function LambdaLouvain_Step(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf)
-    @assert(issymmetric(A))
+function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf)
+    @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
     # println("Merging $n Communities")
 
     # This permutes the node labels, to add randomization in the Louvain
     # algorithm so that you don't always traverse the nodes in the same order
     if randflag
-        p = randperm(n)
+        p = Random.randperm(n)
         A = A[p,p]
         undop = sortperm(p)
         w = w[p]
@@ -391,7 +388,7 @@ Step 2 of the Louvain algorithm:
 Collapse a clustering into a new network of supernodes and weighted edges, so
 that you can then run the same greedy node-moving on supernodes.
 """
-function collapse_clustering(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64},c::Vector{Int64})
+function collapse_clustering(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},c::Vector{Int64})
 
     n = size(A,1)
     # Storing clusters in an array of arrays help speed many aspects of the
@@ -434,7 +431,7 @@ function collapse_clustering(A::SparseMatrixCSC{Float64,Int64},w::Vector{Float64
     start = time()
     # Anew = sparse(I,J,V,N,N)
     Anew = Anew+Anew'
-    Anew = sparse(Anew)
+    Anew = SparseArrays.sparse(Anew)
 
     return Anew, wnew
 end

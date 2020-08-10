@@ -1,8 +1,3 @@
-using StatsBase
-using Combinatorics
-
-include("HSBM.jl")
-
 # Compute a complete set of sums using a fast recursive algorithm based on a simple combinatorial relationship between the required sums.
 # This code has been partially optimized for quick updates, which means that it is more complicated that it would need to be if we were just updating from scratch every time.
 
@@ -69,13 +64,13 @@ function evalConstants(r::Int64; bigInt::Bool=true)
         else      C = Dict{Vector{Int64},Int64}()
         end
 
-    for i = 1:r, j = 1:i, p in partitions(i, j)
+    for i = 1:r, j = 1:i, p in Combinatorics.partitions(i, j)
         orderCorrection =
-            if bigInt prod([factorial(big(c)) for c in values(countmap(p))])
-            else      prod([factorial(c) for c in values(countmap(p))])
+            if bigInt prod([factorial(big(c)) for c in values(StatsBase.countmap(p))])
+            else      prod([factorial(c) for c in values(StatsBase.countmap(p))])
             end
         # orderCorrection = 1
-        C[p] = multinomial(p...) ÷ orderCorrection
+        C[p] = Combinatorics.multinomial(p...) ÷ orderCorrection
     end
     return(C)
 end;
@@ -99,7 +94,7 @@ function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants:
 
     M = bigInt ? Dict{Vector{Int64}, BigInt}() : Dict{Vector{Int64}, Int64}()
 
-    for i = 1:r, j = 1:i, p in partitions(i, j)
+    for i = 1:r, j = 1:i, p in Combinatorics.partitions(i, j)
         M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
     end
 
@@ -202,7 +197,7 @@ function increments(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vector{
 
     r = maximum([sum(p) for p in keys(M)])
 
-    for i = 1:r, j = 1:i, p in partitions(i, j)
+    for i = 1:r, j = 1:i, p in Combinatorics.partitions(i, j)
         ΔM[p] = Δμ[p[end]]*get(M, p[1:(end-1)], 1) + μ[p[end]]*get(ΔM, p[1:(end-1)], 0) + Δμ[p[end]]*get(ΔM, p[1:(end-1)], 0) - correctOvercounting(ΔM,p)
     end
     return(ΔV, Δμ, ΔM)

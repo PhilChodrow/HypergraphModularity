@@ -1,12 +1,4 @@
-using Random
-using SparseArrays
-
-include("objectives.jl")
-include("hyper_format.jl")
-include("HSBM.jl")
-include("diffs.jl")
-
-function cutdiff(He2n::SparseMatrixCSC{Float64,Int64},Hn2e::SparseMatrixCSC{Float64,Int64},w::Array{Float64,1},c::Array{Int64,1}, I::Int64,J::Int64,Ω;α)
+function cutdiff(He2n::SparseArrays.SparseMatrixCSC{Float64,Int64},Hn2e::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Array{Float64,1},c::Array{Int64,1}, I::Int64,J::Int64,Ω;α)
     """
     CutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.

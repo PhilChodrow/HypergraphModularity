@@ -1,11 +1,4 @@
-using Random
-using SparseArrays
-
-include("hyper_format.jl")
-include("HSBM.jl")
-include("hyperlouvain_helpers.jl")
-
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -62,8 +55,14 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
-
-        for i = 1:n                     # visit each node in turn
+        
+        if scan_order == "lexical"
+            scan = 1:n
+        elseif scan_order == "random"
+            scan = Random.shuffle(1:n)
+        end
+        
+        for i = scan                     # visit each node in turn
 
             Ci_ind = Z[i]               # Cluster index for node i
             Ci = Clusters[Ci_ind]       # Indices of nodes in i's cluster
@@ -319,7 +318,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
+function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -332,7 +331,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
 
     phase = 1
     if verbose println("Faster SuperNode Louvain: Phase $phase") end
-    Z = HyperLouvain(H,kmax,Ω;α=α,verbose=verbose)
+    Z = HyperLouvain(H,kmax,Ω;α=α,verbose=verbose,scan_order=scan_order)
     n = length(Z)
 
     changed = false

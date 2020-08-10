@@ -1,6 +1,3 @@
-include("utils.jl")
-include("cut.jl")
-include("vol.jl")
 
 function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
     """
@@ -18,29 +15,44 @@ function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=
     return cut - vol
 end
 
-function parameterEstimateObjective(H::hypergraph, Z::Array{<:Integer, 1}, Ω; ℓ::Int64 = 0, bigInt::Bool=true)
-    """
-    An efficient way to compute the modularity objective for varying intensity function parameter α, useful for learning α from partitions.
-    Probably there is a better way to implement this via currying.
-    """
+# function parameterEstimateObjective(H::hypergraph, Z::Array{<:Integer, 1}, Ω; ℓ::Int64 = 0, bigInt::Bool=true)
+#     """
+#     An efficient way to compute the modularity objective for varying intensity function parameter α, useful for learning α from partitions.
+#     Probably there is a better way to implement this via currying.
+#     """
 
-    if ℓ == 0
-        ℓ = maximum(Z)
-    end
+#     if ℓ == 0
+#         ℓ = maximum(Z)
+#     end
 
-    C = evalCuts(Z, H)
-    V, μ, M = evalSums(Z, H, ℓ, bigInt)
+#     C = evalCuts(Z, H)
+#     V, μ, M = evalSums(Z, H, ℓ, bigInt)
 
+#     function objective(α)
+#         obj = 0
+#         for p in keys(M)
+#             Op = Ω(p;α=α, mode="partition")
+#             obj -= M[p]*Op
+#             if p in keys(C)
+#                 obj += C[p]*log(Op)
+#             end
+#         end
+#         return -obj # for minimization
+#     end
+#     return objective
+# end
+
+function formObjective(H, Z, Ω)
+    ℓ = maximum(Z)
+    C       = evalCuts(Z,H)
+    V, μ, S = evalSums(Z,H,ℓ,true);
     function objective(α)
-        obj = 0
-        for p in keys(M)
-            Op = Ω(p;α=α, mode="partition")
-            obj -= M[p]*Op
-            if p in keys(C)
-                obj += C[p]*log(Op)
-            end
+        obj = 0.0
+        for p in keys(S)
+            Op   = Ω(p; α=α, mode="partition")
+            obj += get(C, p, 0)*log(Op) - S[p]*Op
         end
-        return -obj # for minimization
+        return -Float64(obj, RoundDown) # sign is for minimization
     end
     return objective
 end
@@ -98,7 +110,7 @@ function logLikelihood(H::hypergraph, Z::Array{<:Integer,1}, Ω::Any, ϑ::Array{
     end
 
     for k in keys(H.E)
-        T = with_replacement_combinations(1:n, k)
+        T = Combinatorics.with_replacement_combinations(1:n, k)
         Ek = H.E[k]
         for S in T
 
