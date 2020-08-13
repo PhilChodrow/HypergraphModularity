@@ -41,12 +41,12 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     return A
 end
 
-function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false)
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.
     """
-    A = CliqueExpansion(H,weighted)
+    A = CliqueExpansion(H,weighted,binary)
     return VanillaModularity(A,gamma,randflag)
 end
 
