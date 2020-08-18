@@ -21,8 +21,10 @@ function partitionize(a::Vector{<:Integer})
             v[current] = 1
         end
     end
-    v = v[v.>0]
-    return sort(v, rev = true)
+    v = v[v.>0] # try dropping this, and then manually drop the zeros
+
+    sort!(v, rev = true) # check whether this makes a difference.
+    return v
 end
 
 function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
@@ -31,5 +33,5 @@ function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
 end
 
 function poisson_pdf(x::Integer, λ::Float64)
-    exp(-λ)*λ^x/factorial(x)
+    exp(-λ)*λ^x/factorial(big(x))
 end

@@ -56,7 +56,7 @@ function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     return Ω̂
 end
 
-function coordinateAscent(H, Z, Ω, α0; n_iters = 10)
+function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     
     kmax = length(α0) ÷ 2
 
@@ -71,7 +71,7 @@ function coordinateAscent(H, Z, Ω, α0; n_iters = 10)
     α = copy(α0);
     
     for i = 1:n_iters, k = 1:(2*kmax)
-        res = Optim.optimize(a -> G(a, α, k),  0, 10) # very slow and simple -- no gradient information
+        res = Optim.optimize(a -> G(a, α, k), amin, amax) # very slow and simple -- no gradient information
         α[k] = Optim.minimizer(res)[1]
     end
     

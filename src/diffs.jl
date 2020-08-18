@@ -3,7 +3,7 @@
 
 
 
-function cutDiff(C, I, t, Z, Hyp, w, node2edges)
+function cutDiff(C, I, t, Z, Hyp, w, node2edges, Ω)
     """
     C: Dict{Vector{Int64}, Int64}, the dict of current cut values as would be produced by evalCuts().
         C is keyed by partition vectors p.
@@ -24,58 +24,21 @@ function cutDiff(C, I, t, Z, Hyp, w, node2edges)
     end
     E = unique(E_id)
 
-    ΔC = Dict(p => 0 for i=1:kmax for j = 1:i for p in keys(C))
+    ΔC = Dict(p => 0 for p in keys(C))
 
     Z_prop = copy(Z)
     Z_prop[I] .= t
+
     for eid in E
         # get nodes in edge, and its weight
         e = Hyp[eid]
         we = w[eid]
 
         # Updated
-        ΔC[partitionize(Z[e])]      -= we
-
-        if haskey(ΔC,partitionize(Z_prop[e]))
-            ΔC[partitionize(Z_prop[e])] += we
-        else
-            ΔC[partitionize(Z_prop[e])] = we
-        end
-
+        ΔC[Ω.P(Z[e])]      -= we
+        ΔC[Ω.P(Z_prop[e])] += we
     end
     return(ΔC)
-end
-
-function cutDiff_template(C, I, t, Z, H)
-    """
-    NV -- This is the exact format this function was in before I messed with it.
-    C: Dict{Vector{Int64}, Int64}, the dict of current cut values as would be produced by evalCuts().
-        C is keyed by partition vectors p.
-        C[p] is the # of edges with label partition p.
-        Note: Ω is NOT used in the calculation of C
-    I: Vector{Int64}, the list of nodes to move, assumed to be in the same group
-    t: Int64, the new group to which to move the nodes I
-    Z: Vector{Int64}, the current group assignments
-    H: the hypergraph, in whatever data format is convenient
-    return: ΔC, a Dict{Vector{Int64}, Int64}, where ΔC[p] is the change in C[p] caused by moving the nodes in I to group t
-    """
-
-    println("Not implemented. Nate, can you help on this? I think the first line is the main issue")
-
-    # help needed here
-    # form list of edges E, where E consists of edges incident to one or more nodes I
-
-    # I think the rest should be ok
-
-    # ΔC = Dict(p => 0 for i=1:kmax for j = 1:i for p in keys(C))
-
-    # Z_prop = copy(Z)
-    # Z_prop[I] .= t
-    # for e in E
-    #     ΔC[partitionize(Z[e])]      -= 1
-    #     ΔC[partitionize(Z_prop[e])] += 1
-    # end
-    # return(ΔC)
 end
 
 function volDiff(v, μ, M, I, t, D, Z)
