@@ -21,8 +21,19 @@ function partitionize(a::Vector{<:Integer})
             v[current] = 1
         end
     end
-    v = v[v.>0]
-    return sort(v, rev = true)
+    # v = v[v.>0]
+    # return sort(v, rev = true)
+    v = sort!(v, rev = true)
+    return sortedremovezeros(v)
+end
+
+function sortedremovezeros(p::Vector{<:Integer})
+    for i = 2:length(p)
+        if p[i] == 0
+            return p[1:i-1]
+        end
+    end
+    return p
 end
 
 function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
