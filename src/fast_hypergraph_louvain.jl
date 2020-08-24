@@ -1,4 +1,4 @@
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
+function HyperLouvain_(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -51,17 +51,17 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
-        
+
         if scan_order == "lexical"
             scan = 1:n
         elseif scan_order == "random"
             scan = Random.shuffle(1:n)
         end
-        
+
         for i = scan                     # visit each node in turn
 
             Ci_ind = Z[i]               # Cluster index for node i
@@ -139,27 +139,24 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 
 end
 
-function compute_moddiff(edge2part,Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+function compute_moddiff(edge2part,Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω::IntensityFunction;α) where T <: Union{Int64, Vector{Int64}}
     """
     NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
     """
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
-    voldiff = 0
-    for p in keys(M)
-        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
-    end
+    voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(M))
 
     ΔC, Δe2p = CutDiff_Many(Cts, I_, t, Z, Hyp, w, node2edges,edge2part)
-    cdiff = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
+    cdiff = sum(ΔC[p]*log(Ω.ω(Ω.aggregator(p), α)) for p in keys(ΔC))
     mdiff = cdiff-voldiff
 
     return mdiff, ΔV, Δμ, ΔM, ΔC, Δe2p
 end
 
 
-function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
+function SuperNodeStep_(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -221,7 +218,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
@@ -318,7 +315,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
+function SuperNodeLouvain_(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -394,7 +391,7 @@ function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::B
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false

@@ -27,7 +27,13 @@ function cutDiff(C, I, t, Z, Hyp, w, node2edges, Ω)
     ΔC = Dict(p => 0 for p in keys(C))
 
     Z_prop = copy(Z)
-    Z_prop[I] .= t
+
+    # kind of kludgy, can probably make this more elegant
+    if length(I) == 1
+        Z_prop[I] = t
+    else
+        Z_prop[I] .= t
+    end
 
     for eid in E
         # get nodes in edge, and its weight

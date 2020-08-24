@@ -167,3 +167,11 @@ end
 
     @test Q_naive ≈ Q
 end
+
+@testset "hyperlouvain" begin
+    """
+    more a test that the code successfully runs than a meaningful test of correctness
+    """
+    Z_ = HyperLouvain(H,kmax,Ω,100,true;α=α, verbose=true)
+    Z_ = SuperNodeLouvain(H,kmax,Ω,100,true;α=α, verbose=true)
+end
