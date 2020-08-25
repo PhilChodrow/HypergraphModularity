@@ -44,12 +44,12 @@ end
 
 function formObjective(H, Z, Ω)
     ℓ = maximum(Z)
-    C       = evalCuts(Z,H)
+    C       = evalCuts(H,Z,Ω)
     V, μ, S = evalSums(Z,H,ℓ,true);
     function objective(α)
         obj = 0.0
         for p in keys(S)
-            Op   = Ω(p; α=α, mode="partition")
+            Op   = Ω.ω(Ω.aggregator(p), α)
             obj += get(C, p, 0)*log(Op) - S[p]*Op
         end
         return -Float64(obj, RoundDown) # sign is for minimization

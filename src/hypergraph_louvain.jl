@@ -88,7 +88,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
     println("")
     # Begin by converting to alternative hypergraph storage
     He2n, w = hypergraph2incidence(H)
-    Hn2e = sparse(He2n')
+    Hn2e = SparseArrays.sparse(He2n')
     m, n = size(He2n)
 
     # Store node neighbors of each node
@@ -184,7 +184,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 end
 
 
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::Int64=100,bigInt::Bool=true;α, verbose=true)
+function HyperLouvain_(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::Int64=100,bigInt::Bool=true;α, verbose=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -260,6 +260,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
             μ_best = 0
             M_best = 0
 
+            Δcuts = Dict()
             # Now let's see if it's better to move to a nearby cluster, Cj
             for j = 1:length(NC)
                 Cj_ind = NC[j]
@@ -275,9 +276,12 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
 
                     voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
                     Δcuts = cutDiff(cuts, i, Cj_ind, Z, Hyp, w, node2edges, Ω)
-                    cdiff = sum(Ω.ω(p,α)*Δcuts[p] for p in keys(Δcuts))
+                    cdiff = sum(log(Ω.ω(p,α))*Δcuts[p] for p in keys(Δcuts))
 
-                    change =  cdiff - voldiff
+                    change = cdiff - voldiff
+                    
+#                     println(cdiff, " ", voldiff)
+                    
                 end
 
                 # Check if this is currently the best possible greedy move to make
@@ -296,7 +300,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
             # Move i to the best new cluster, only if it strictly improves modularity
             if BestImprove > 1e-8
                 # increments to cut and vol
-                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
+                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best) 
                 cuts += Δcuts
 
                 # update clustering
@@ -333,14 +337,9 @@ function compute_voldiff(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
-    # new proposed quantities
-    # V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
-
-    voldiff = 0
-    for p in keys(M)
-        voldiff += Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p]
-    end
-
+    voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(ΔM))
+        
+    
     return voldiff, ΔV, Δμ, ΔM
 end
 
@@ -396,8 +395,8 @@ function SuperNeighborList(Hyp, SuperNodes,n)
     end
 
     # binary (unweighted) supernodes-by-edges incidence matrix
-    Hnew = sparse(J,I,ones(length(I)),m,sn)
-    Neighbs = NeighborList(Hnew, sparse(Hnew'))
+    Hnew = SparseArrays.sparse(J,I,ones(length(I)),m,sn)
+    Neighbs = NeighborList(Hnew, SparseArrays.sparse(Hnew'))
     return Neighbs
 end
 
@@ -537,7 +536,7 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     return Z, changemade
 end
 
-function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
+function SuperNodeStep_(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -684,7 +683,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=True)
+function SuperNodeLouvain_(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=True)
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -695,11 +694,10 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     return: Z::array{Int64, 1}: array of group labels.
     """
 
-    println("Warning: running SuperNodeLouvain from src/hypergraph_louvain.jl")
 
     phase = 1
     if verbose println("SuperNode Louvain: Phase $phase") end
-    Z = HyperLouvain(H,kmax,Ω;α=α, verbose=verbose)
+    Z = HyperLouvain_(H,kmax,Ω;α=α, verbose=verbose)
     n = length(Z)
 
     changed = (maximum(Z) != n)
@@ -707,7 +705,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     while changed
         phase += 1
         if verbose println("SuperNode Louvain: Phase $phase") end
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α,verbose=verbose)
+        Z, changed = SuperNodeStep_(H,Z,kmax,Ω;α=α,verbose=verbose)
     end
 
     return Z

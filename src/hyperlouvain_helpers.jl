@@ -62,27 +62,24 @@ function CutDiff_Many(C, I, t, Z, Hyp, w, node2edges,edge2part)
 end
 
 
-function CutDiff_OneNode(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},c::Array{Int64,1}, I::Int64,J::Int64,edge2penalty::Vector{Float64},Ω; α)
+function CutDiff_OneNode(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},Z::Array{Int64,1}, I::Int64,J::Int64,edge2penalty::Vector{Float64},Ω::IntensityFunction; α)
     """
     CutDiff: Compute change in the first term of the modularity function
     resulting from moving a node I to cluster J.
     """
-    orig = c[I]
-    He = node2edges[I]
+    orig = Z[I]
+    He   = node2edges[I]
     Δpen = Dict{Int64,Float64}()    # Change in penalty for moving a node
 
-    obj = 0
-    c[I] = J
-    for i = He
-        edge = H[i]
-        clus_e = c[edge]    # set of clusters
-        p = partitionize(clus_e)
-        om_z = Ω(p; α=α, mode="partition")
-        Δpen[i] = w[i]*log(om_z)   # new penalty if this move is made
-        obj += Δpen[i]-edge2penalty[i]
-
+    obj  = 0
+    Z[I] = J
+    for i in He
+        e        = H[i]
+        z        = Z[e]                      # set of clusters
+        Δpen[i]  = w[i]*log(Ω.ω(Ω.P(z),α))   # new penalty if this move is made
+        obj     += Δpen[i]-edge2penalty[i]
     end
-    c[I] = orig
+    Z[I] = orig
 
     return obj, Δpen
 end

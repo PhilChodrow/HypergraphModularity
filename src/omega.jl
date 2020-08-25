@@ -25,14 +25,14 @@ function partitionIntensityFunction(ω, kmax)
 end
 
 function allOrNothingIntensityFunction(ω, kmax)
-    range      = [(1.0*x, y) for x = 0:1 for y = 1:kmax]
+    range      = [(x, y) for x = 0:1 for y = 1:kmax]
     P          = z->(all(z[1] .== z), length(z))
     aggregator = p->(length(p) == 1, sum(p))
     return IntensityFunction(ω, P, range, aggregator)
 end
 
 function sumOfExteriorDegreesIntensityFunction(ω, kmax)
-    range = [(1.0*x, y) for y = 1:kmax for x = 0:y]
+    range = [(1*x, y) for y = 1:kmax for x = 0:y]
 
     function P(z)
         len = length(z)
