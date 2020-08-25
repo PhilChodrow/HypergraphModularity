@@ -58,6 +58,8 @@ end
 
 function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     
+    println("WARNING: this function is now deprecated, use learnParameters() instead.")
+    
     kmax = length(α0) ÷ 2
 
     modularityObjective = formObjective(H, Z, Ω)
@@ -76,4 +78,25 @@ function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     end
     
     return(α)
+end
+
+function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6)
+    
+    k = length(α0)
+    
+    obj_ = formObjective(H, Z, Ω)
+    obj(x, grad) = obj_(x)
+    
+    opt = NLopt.Opt(:LN_COBYLA, k)
+    opt.min_objective = obj
+#     opt.xtol_rel = xtol
+    opt.ftol_abs = ftol_abs
+    
+
+    (minf,minx,ret) = NLopt.optimize(opt, α0)
+    numevals = opt.numevals;
+    if verbose
+        println("got $minf at $minx after $numevals iterations (returned $ret)")
+    end
+    return(minx, minf)
 end

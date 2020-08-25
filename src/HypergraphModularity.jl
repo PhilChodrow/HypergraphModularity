@@ -8,7 +8,7 @@ import Random
 import SparseArrays
 import StatsBase
 import Base
-import Optim
+import NLopt
 
 include("omega.jl")
 include("HSBM.jl")
@@ -90,4 +90,6 @@ export partitionIntensityFunction
 export IntensityFunction
 export allOrNothingIntensityFunction
 export sumOfExteriorDegreesIntensityFunction
+
+export learnParameters
 end # module
