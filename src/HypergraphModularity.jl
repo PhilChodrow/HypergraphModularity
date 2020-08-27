@@ -74,6 +74,9 @@ export coordinateAscent
 export estimateΩEmpirically
 
 export read_hypergraph_data
+export read_hypergraph_label_names
+export read_hypergraph_labels
+export read_hypergraph_edges
 
 export L
 
