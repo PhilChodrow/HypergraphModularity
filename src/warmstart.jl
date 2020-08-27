@@ -115,8 +115,8 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true)
     end
 end
 
-function dyadicModularity(H, Z, γ)
-    G = CliqueExpansion(H)
+function dyadicModularity(H, Z, γ;weighted=true)
+    G = CliqueExpansion(H, weighted)
     I, J = SparseArrays.findnz(G)
     n = maximum(I) # number of nodes
     m = sum(G)/2     # number of edges
