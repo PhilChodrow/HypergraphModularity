@@ -81,5 +81,6 @@ export downSampleEdges!
 
 export computeDyadicResolutionParameter
 export dyadicModularity
+export dyadicLogLikelihood
 
 end # module

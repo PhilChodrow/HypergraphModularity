@@ -34,7 +34,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     # Penalties for completely partitioned hypereges
     Pn = zeros(kmax)
     for i = 1:kmax
-        p = ones(i)
+        p = ones(Int64, i)
         om_z = Ω(p; α=α, mode="partition")
         Pn[i] =log(om_z) # later scale this by weight
     end
