@@ -76,7 +76,8 @@ function CutDiff_OneNode(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges
     for i in He
         e        = H[i]
         z        = Z[e]                      # set of clusters
-        Δpen[i]  = w[i]*log(Ω.ω(Ω.P(z),α))   # new penalty if this move is made
+        new_pen = w[i]*log(Ω.ω(Ω.P(z),α))   # new penalty if this move is made
+        Δpen[i]  = new_pen
         obj     += Δpen[i]-edge2penalty[i]
     end
     Z[I] = orig

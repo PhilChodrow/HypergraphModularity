@@ -80,7 +80,7 @@ function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     return(α)
 end
 
-function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6)
+function learnParameters(H, Z, Ω, α0; verbose = false, xtol_abs = 1e-4)
     
     k = length(α0)
     
@@ -89,10 +89,8 @@ function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6)
     
     opt = NLopt.Opt(:LN_COBYLA, k)
     opt.min_objective = obj
-#     opt.xtol_rel = xtol
-    opt.ftol_abs = ftol_abs
+    opt.xtol_abs = xtol_abs
     
-
     (minf,minx,ret) = NLopt.optimize(opt, α0)
     numevals = opt.numevals;
     if verbose

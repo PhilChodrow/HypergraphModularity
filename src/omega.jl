@@ -26,7 +26,7 @@ end
 
 function allOrNothingIntensityFunction(ω, kmax)
     range      = [(x, y) for x = 0:1 for y = 1:kmax]
-    P          = z->(all(z[1] .== z), length(z))
+    P          = z->(all(x->x==z[1],z), length(z))
     aggregator = p->(length(p) == 1, sum(p))
     return IntensityFunction(ω, P, range, aggregator)
 end
