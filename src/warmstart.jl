@@ -77,12 +77,12 @@ end
 
 
 
-function computeDyadicResolutionParameter(H, Z)
+function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true)
     """
     compute the dyadic resolution parameter associated to a partition using the formula from Newman (2016): https://arxiv.org/abs/1606.02319
     """
 
-    G = CliqueExpansion(H)
+    G = CliqueExpansion(H, weighted)
     I, J = SparseArrays.findnz(G)
     n = maximum(I) # number of nodes
     m = sum(G)/2     # number of edges
@@ -106,13 +106,17 @@ function computeDyadicResolutionParameter(H, Z)
     V = [sum(D[Z.==k]) for k in 1:maximum(Z)]
     ω_in = 4*m*m_in / (sum(V.^2))
     ω_out = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
-    γ = (ω_in - ω_out)/(log(ω_in) - log(ω_out))
-
-    return(γ)
+    
+    if mode == "γ"
+        γ = (ω_in - ω_out)/(log(ω_in) - log(ω_out))
+        return γ
+    else
+        return(ω_in, ω_out)
+    end
 end
 
-function dyadicModularity(H, Z, γ)
-    G = CliqueExpansion(H)
+function dyadicModularity(H, Z, γ;weighted=true)
+    G = CliqueExpansion(H, weighted)
     I, J = SparseArrays.findnz(G)
     n = maximum(I) # number of nodes
     m = sum(G)/2     # number of edges
@@ -131,4 +135,30 @@ function dyadicModularity(H, Z, γ)
         end
     end
     Q = Q/(2m)
+end
+
+function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
+    
+    G = CliqueExpansion(H, weighted)
+    n = length(H.D)
+
+    obj = 0.0
+    
+    # construct dyadic degree sequence
+    I, J = SparseArrays.findnz(G)
+    n = maximum(I) # number of nodes
+    m = sum(G)/2     # number of edges
+
+    D = zero(1.0.*collect(1:n))
+
+    for k in 1:length(I)
+        D[I[k]] += G[I[k], J[k]]
+    end
+    
+    for i ∈ 1:n, j ∈ 1:n
+        ω = (Z[i] == Z[j]) ? ω_in : ω_out
+        obj += 1/2*(G[i, j]*log(ω) - D[i]*D[j]/(2*m)*ω)
+    end
+    
+    return obj
 end
