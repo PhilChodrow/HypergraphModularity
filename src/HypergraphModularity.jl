@@ -86,4 +86,5 @@ export computeDyadicResolutionParameter
 export dyadicModularity
 export dyadicLogLikelihood
 
+export learnParameters
 end # module
