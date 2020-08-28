@@ -77,3 +77,27 @@ function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     
     return(α)
 end
+
+
+function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6)
+    """
+    a more reliable optimization to learn parameters given a partition, using the COBYLA algorithm from NLopt. 
+    returns both the optimal α and the objective value at that point. 
+    """
+    
+    k = length(α0)
+    
+    obj_ = formObjective(H, Z, Ω)
+    obj(x, grad) = obj_(x)
+    
+    opt = NLopt.Opt(:LN_COBYLA, k)
+    opt.min_objective = obj
+    opt.ftol_abs = ftol_abs
+    
+    (minf,minx,ret) = NLopt.optimize(opt, α0)
+    numevals = opt.numevals;
+    if verbose
+        println("got $minf at $minx after $numevals iterations (returned $ret)")
+    end
+    return(minx, minf)
+end
