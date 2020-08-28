@@ -138,27 +138,34 @@ function dyadicModularity(H, Z, γ;weighted=true)
 end
 
 function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
-    
     G = CliqueExpansion(H, weighted)
     n = length(H.D)
 
-    obj = 0.0
-    
-    # construct dyadic degree sequence
-    I, J = SparseArrays.findnz(G)
-    n = maximum(I) # number of nodes
     m = sum(G)/2     # number of edges
+    D = vec(sum(G, dims=1))
+    obj = 0.0
 
-    D = zero(1.0.*collect(1:n))
-
-    for k in 1:length(I)
-        D[I[k]] += G[I[k], J[k]]
-    end
-    
+    #=
     for i ∈ 1:n, j ∈ 1:n
         ω = (Z[i] == Z[j]) ? ω_in : ω_out
-        obj += 1/2*(G[i, j]*log(ω) - D[i]*D[j]/(2*m)*ω)
+        obj += 0.5 * (G[i, j]*log(ω) - D[i]*D[j]/(2*m)*ω)
+    end
+    =#
+
+    # Faster version of this computation
+
+    edge_obj = 0.0
+    for (i, j, v) in zip(SparseArrays.findnz(G)...)
+        ω = (Z[i] == Z[j]) ? ω_in : ω_out
+        edge_obj += v * log(ω)
+    end
+
+    deg_obj = ω_out * sum(D / sqrt(m))^2 / 2
+    for c in unique(Z)
+        inds = findall(Z .== c)
+        val = sum(D[inds])^2 / (2 * m)
+        deg_obj += (ω_in - ω_out) * val
     end
     
-    return obj
+    return (edge_obj - deg_obj) / 2.0
 end
