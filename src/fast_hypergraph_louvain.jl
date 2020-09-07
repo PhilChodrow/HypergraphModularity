@@ -30,12 +30,14 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
     r = kmax
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt)
     C = evalConstants(r)
+
     cuts = evalCuts(H, Z, Ω)
     
     # initialize memoization of edge penalties 
     Pn           = [log(Ω.ω(Ω.P(collect(1:i)), α)) for i in 1:kmax]
     edge2penalty = [w[e]*Pn[length(Hyp[e])] for e in 1:length(Hyp)]
     
+
     # Main Greedy Local Move Loop
     while improving && iter < maxits
 

@@ -56,9 +56,9 @@ function estimateΩEmpirically(H, Z; min_val=0, aggregator=p->p)
     return Ω̂
 end
 
-function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
-    
+function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)    
     println("WARNING: this function is now deprecated, use learnParameters() instead.")
+
     
     kmax = length(α0) ÷ 2
 
@@ -74,13 +74,19 @@ function coordinateAscent(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)
     
     for i = 1:n_iters, k = 1:(2*kmax)
         res = Optim.optimize(a -> G(a, α, k), amin, amax) # very slow and simple -- no gradient information
+
         α[k] = Optim.minimizer(res)[1]
     end
     
     return(α)
 end
 
-function learnParameters(H, Z, Ω, α0; verbose = false, xtol_abs = 1e-4)
+
+function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6)
+    """
+    a more reliable optimization to learn parameters given a partition, using the COBYLA algorithm from NLopt. 
+    returns both the optimal α and the objective value at that point. 
+    """
     
     k = length(α0)
     
@@ -89,7 +95,8 @@ function learnParameters(H, Z, Ω, α0; verbose = false, xtol_abs = 1e-4)
     
     opt = NLopt.Opt(:LN_COBYLA, k)
     opt.min_objective = obj
-    opt.xtol_abs = xtol_abs
+
+    opt.ftol_abs = ftol_abs
     
     (minf,minx,ret) = NLopt.optimize(opt, α0)
     numevals = opt.numevals;
