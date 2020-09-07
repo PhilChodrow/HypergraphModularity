@@ -42,21 +42,6 @@ end
 #     return objective
 # end
 
-function formObjective(H, Z, Ω)
-    ℓ       = maximum(Z)
-    C       = evalCuts(H,Z,Ω)
-    V, μ, S = evalSums(Z,H,ℓ,true);
-    Ŝ = aggregateSums(S,Ω)
-    function objective(α)
-        obj = 0.0
-        for p in keys(Ŝ)
-            Op   = Ω.ω(p, α)
-            obj += get(C, p, 0)*log(Op) - Ŝ[p]*Op
-        end
-        return -convert(Float64, obj) # sign is for minimization
-    end
-    return objective
-end
 
 
 

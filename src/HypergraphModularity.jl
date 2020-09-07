@@ -9,6 +9,7 @@ import SparseArrays
 import StatsBase
 import Base
 import NLopt
+import Optim
 
 include("omega.jl")
 include("HSBM.jl")

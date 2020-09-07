@@ -11,27 +11,28 @@ mutable struct IntensityFunction
     P
     range
     aggregator
+    grad
 end
 
 function partitionsUpTo(kmax)
     return [p for k = 1:kmax for p in Combinatorics.partitions(k) ]
 end
 
-function partitionIntensityFunction(ω, kmax)
+function partitionIntensityFunction(ω, kmax; grad = nothing)
     range      = partitionsUpTo(kmax)
     P          = partitionize
     aggregator = identity
-    return IntensityFunction(ω, P, range, aggregator)
+    return IntensityFunction(ω, P, range, aggregator, grad)
 end
 
-function allOrNothingIntensityFunction(ω, kmax)
+function allOrNothingIntensityFunction(ω, kmax; grad = nothing)
     range      = [(x, y) for x = 0:1 for y = 1:kmax]
     P          = z->(all(x->x==z[1],z), length(z))
     aggregator = p->(length(p) == 1, sum(p))
-    return IntensityFunction(ω, P, range, aggregator)
+    return IntensityFunction(ω, P, range, aggregator, grad)
 end
 
-function sumOfExteriorDegreesIntensityFunction(ω, kmax)
+function sumOfExteriorDegreesIntensityFunction(ω, kmax; grad = nothing)
     range = [(1*x, y) for y = 1:kmax for x = 0:y]
 
     function P(z)
@@ -40,5 +41,11 @@ function sumOfExteriorDegreesIntensityFunction(ω, kmax)
     end
 
     aggregator = p->(length(p), sum(p))
-    return IntensityFunction(ω, P, range, aggregator)
+    return IntensityFunction(ω, P, range, aggregator, grad)
+end
+
+function empiricalIntensityFunction(ω, kmax, aggregator; grad = nothing)
+    range = [aggregator(p) for p in partitionsUpTo(kmax)]
+    P = partitionize
+    return IntensityFunction(ω, P, range, aggregator, grad)
 end
