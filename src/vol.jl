@@ -249,7 +249,9 @@ function second_term_eval(H::hypergraph, Z::Vector{<:Integer}, Ω::IntensityFunc
     V, μ, M = evalSums(Z, H, ℓ, bigInt)
     M̂ = aggregateSums(M, Ω)
     for p̂ in keys(M̂)
-        obj += Ω.ω(p̂, α)*M̂[p̂]
+        if M̂[p̂] >= 1
+            obj += Ω.ω(p̂, α)*M̂[p̂]
+        end
     end
     return obj
 end
