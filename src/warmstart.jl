@@ -115,28 +115,51 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true)
     end
 end
 
-function dyadicModularity(H, Z, γ;weighted=true)
+function dyadicModularity(H, Z, γ; weighted=true)
     G = CliqueExpansion(H, weighted)
-    I, J = SparseArrays.findnz(G)
-    n = maximum(I) # number of nodes
-    m = sum(G)/2     # number of edges
+    d = vec(sum(G, dims=1))
 
-    D = zero(1.0.*collect(1:n))
-
-    for k in 1:length(I)
-        D[I[k]] += G[I[k], J[k]]
-    end
-
-    Q = 0.0
-
-    for i = 1:n, j = 1:n
+    # non-degree (cut) term
+    edge_obj = 0.0
+    for (i, j, v) in zip(SparseArrays.findnz(G)...)
         if Z[i] == Z[j]
-            Q += G[i, j] - γ*(D[i]*D[j])/(2m)
+            edge_obj += v
         end
     end
-    Q = Q/(2m)
+
+    # volume terms
+    vols = Dict{Int64, Float64}()
+    for c in unique(Z)
+        vols[c] = 0.0
+    end
+    for i = 1:length(d)
+        vols[Z[i]] += d[i]
+    end
+
+    Q = edge_obj
+    volG = sum(d)
+    vol_term = 0.0
+    for c in unique(Z)
+        Q -= γ * vols[c]^2 / volG
+    end
+
+    return Q / volG
 end
 
+function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
+    G = CliqueExpansion(H, weighted)
+    d = vec(sum(G, dims=1))
+
+    # Eq. (14) from https://arxiv.org/pdf/1606.02319.pdf
+    γ = (ω_in - ω_out) / (log(ω_in) - log(ω_out))
+    Q = dyadicModularity(H, Z, γ; weighted=weighted)
+    m = sum(d) / 2
+    B = m * log(ω_in / ω_out)
+    C = m * (ω_out + log(ω_out))
+    return  B * Q + C
+end
+
+#=
 function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
     G = CliqueExpansion(H, weighted)
     n = length(H.D)
@@ -144,15 +167,6 @@ function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
     m = sum(G)/2     # number of edges
     D = vec(sum(G, dims=1))
     obj = 0.0
-
-    #=
-    for i ∈ 1:n, j ∈ 1:n
-        ω = (Z[i] == Z[j]) ? ω_in : ω_out
-        obj += 0.5 * (G[i, j]*log(ω) - D[i]*D[j]/(2*m)*ω)
-    end
-    =#
-
-    # Faster version of this computation
 
     edge_obj = 0.0
     for (i, j, v) in zip(SparseArrays.findnz(G)...)
@@ -169,3 +183,4 @@ function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
     
     return (edge_obj - deg_obj) / 2.0
 end
+=#
