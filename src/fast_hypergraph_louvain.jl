@@ -1,4 +1,4 @@
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
+function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -31,36 +31,24 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt)
     C = evalConstants(r)
 
-    # Penalties for completely partitioned hypereges
-    Pn = zeros(kmax)
-    for i = 1:kmax
-        p = ones(Int64, i)
-        om_z = Ω(p; α=α, mode="partition")
-        Pn[i] =log(om_z) # later scale this by weight
-    end
-
-    edge2penalty = zeros(length(Hyp))    # edge id -> penalty at edge
-    for e = 1:length(Hyp)
-        edge = Hyp[e]
-        weight = w[e]
-        k = length(edge)
-        edge2penalty[e] = weight*Pn[k]
-    end
+    cuts = evalCuts(H, Z, Ω)
+    
+    # initialize memoization of edge penalties 
+    Pn           = [log(Ω.ω(Ω.P(collect(1:i)), α)) for i in 1:kmax]
+    edge2penalty = [w[e]*Pn[length(Hyp[e])] for e in 1:length(Hyp)]
+    
 
     # Main Greedy Local Move Loop
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
+    
         
-        if scan_order == "lexical"
-            scan = 1:n
-        elseif scan_order == "random"
-            scan = Random.shuffle(1:n)
-        end
+        scan = scan_order == "lexical" ? (1:n) : Random.shuffle(1:n)
         
         for i = scan                     # visit each node in turn
 
@@ -85,12 +73,11 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     change = 0
                 else
                     ΔV, Δμ, ΔM = increments(V, μ, M, [i], Cj_ind, H.D, Z)
-                    voldiff = 0
-                    for p in keys(M)
-                        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
-                    end
-                    cdiff, Δpen = CutDiff_OneNode(Hyp,w,node2edges,Z,i,Cj_ind,edge2penalty,Ω;α=α)
+                    voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(ΔM))
+                    
+                    cdiff, Δpen = CutDiff_OneNode(Hyp,w,node2edges,Z,i,Cj_ind,edge2penalty,Ω;α=α) # NOTE: need to check on this
                     change =  cdiff - voldiff
+#                     println(cdiff, " ", voldiff)
                 end
 
                 # Check if this is currently the best possible greedy move
@@ -139,20 +126,17 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 
 end
 
-function compute_moddiff(edge2part,Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+function compute_moddiff(edge2part,Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω::IntensityFunction;α) where T <: Union{Int64, Vector{Int64}}
     """
     NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
     """
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
-    voldiff = 0
-    for p in keys(M)
-        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
-    end
+    voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(M))
 
     ΔC, Δe2p = CutDiff_Many(Cts, I_, t, Z, Hyp, w, node2edges,edge2part)
-    cdiff = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
+    cdiff = sum(ΔC[p]*log(Ω.ω(Ω.aggregator(p), α)) for p in keys(ΔC))
     mdiff = cdiff-voldiff
 
     return mdiff, ΔV, Δμ, ΔM, ΔC, Δe2p
@@ -221,7 +205,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
@@ -333,16 +317,13 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     if verbose println("Faster SuperNode Louvain: Phase $phase") end
     Z = HyperLouvain(H,kmax,Ω;α=α,verbose=verbose,scan_order=scan_order)
     n = length(Z)
-
-    changed = false
-    if maximum(Z) != n
-        changed = true
-    end
-
+    
+    changed = (maximum(Z) != n)
+    
     while changed
         phase += 1
         if verbose println("SuperNode Louvain: Phase $phase") end
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α,verbose=verbose)
+        Z, changed = SuperNodeStep(H,Z,kmax,Ω,maxits;α=α,verbose=verbose)
     end
 
     return Z
@@ -394,7 +375,7 @@ function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::B
     while improving && iter < maxits
 
         iter += 1
-        if mod(iter,1) == 0; 
+        if mod(iter,1) == 0;
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false

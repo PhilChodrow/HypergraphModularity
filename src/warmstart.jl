@@ -146,7 +146,7 @@ function dyadicModularity(H, Z, γ; weighted=true)
     return Q / volG
 end
 
-function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
+function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false)
     G = CliqueExpansion(H, weighted)
     d = vec(sum(G, dims=1))
 

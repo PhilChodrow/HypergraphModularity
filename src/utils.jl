@@ -42,5 +42,5 @@ function counting_coefficient(z::Array{T, 1}) where {T<:Integer}
 end
 
 function poisson_pdf(x::Integer, λ::Float64)
-    exp(-λ)*λ^x/factorial(x)
+    exp(-λ)*λ^x/factorial(big(x))
 end

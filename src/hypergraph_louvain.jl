@@ -88,7 +88,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
     println("")
     # Begin by converting to alternative hypergraph storage
     He2n, w = hypergraph2incidence(H)
-    Hn2e = sparse(He2n')
+    Hn2e = SparseArrays.sparse(He2n')
     m, n = size(He2n)
 
     # Store node neighbors of each node
@@ -184,7 +184,7 @@ function Naive_HyperLouvain(H::hypergraph,Ω,maxits::Int64=100,bigInt::Bool=true
 end
 
 
-function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α, verbose=true)
+function HyperLouvain_(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::Int64=100,bigInt::Bool=true;α, verbose=true)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
@@ -194,6 +194,8 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended.
     return: Z::array{Int64, 1}: array of group labels.
     """
+
+    println("Warning: running HyperLouvain from src/hypergraph_louvain.jl")
     # Begin by converting to alternative hypergraph storage
     start = time()
     Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
@@ -220,10 +222,12 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
     iter = 0
     changemade = false
 
-    # Code for fast local changes in volumes
+    # Initialize vols and cuts to track efficient local changes
     r = kmax
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
     C = evalConstants(r)
+    cuts = evalCuts(H, Z, Ω)
+
     while improving && iter < maxits
 
         iter += 1
@@ -256,6 +260,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
             μ_best = 0
             M_best = 0
 
+            Δcuts = Dict()
             # Now let's see if it's better to move to a nearby cluster, Cj
             for j = 1:length(NC)
                 Cj_ind = NC[j]
@@ -269,11 +274,14 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
                     # voldiff1 = second_term_eval(H, Znew, Ω; bigInt = bigInt,α=α )-second_term_eval(H, Z, Ω; bigInt = bigInt, α=α)
                     # cdiff1 = NaiveCutDiff(H,Z,i,Cj_ind, Ω; α=α)
 
-                    voldiff, ΔV, Δμ, ΔM = compute_voldiff2(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
+                    voldiff, ΔV, Δμ, ΔM = compute_voldiff(V, μ, M, i, Cj_ind, H.D, Z, C, Ω; α=α)
+                    Δcuts = cutDiff(cuts, i, Cj_ind, Z, Hyp, w, node2edges, Ω)
+                    cdiff = sum(log(Ω.ω(p,α))*Δcuts[p] for p in keys(Δcuts))
 
-                    cdiff = CutDiff(Hyp,w,node2edges,Z,i,Cj_ind,Ω;α=α)
-
-                    change =  cdiff - voldiff
+                    change = cdiff - voldiff
+                    
+#                     println(cdiff, " ", voldiff)
+                    
                 end
 
                 # Check if this is currently the best possible greedy move to make
@@ -291,8 +299,9 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 
             # Move i to the best new cluster, only if it strictly improves modularity
             if BestImprove > 1e-8
-                # increments
-                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
+                # increments to cut and vol
+                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best) 
+                cuts += Δcuts
 
                 # update clustering
                 ci_old = Z[i]
@@ -318,31 +327,8 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Boo
 end
 
 
-function compute_voldiff(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
-    """
-    NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
-    I have not tested compute_voldiff, but I have tested increments() with this usage.
-    """
-    # increments due to proposal
-    ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
-    # new proposed quantities
-    V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
-
-    vol = 0
-    for p in keys(M)
-        vol += Ω(p;α=α,mode = "partition")*M[p]*C[p]
-    end
-    vol_prop = 0
-    for p in keys(M_prop)
-        vol_prop += Ω(p;α=α,mode = "partition")*M_prop[p]*C[p]
-    end
-    voldiff = vol-vol_prop
-
-    return voldiff, ΔV, Δμ, ΔM
-end
-
-function compute_voldiff2(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+function compute_voldiff(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω::IntensityFunction;α) where T <: Union{Int64, Vector{Int64}}
     """
     NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
     I have not tested compute_voldiff, but I have tested increments() with this usage.
@@ -351,40 +337,35 @@ function compute_voldiff2(V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vecto
     # increments due to proposal
     ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
 
-    # new proposed quantities
-    # V_prop, μ_prop, M_prop = addIncrements(V, μ, M, ΔV, Δμ, ΔM)
-
-    voldiff = 0
-    for p in keys(M)
-        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
-    end
-
+    voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(ΔM))
+        
+    
     return voldiff, ΔV, Δμ, ΔM
 end
 
 
 
-function compute_moddiff(Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
-    """
-    NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
-    """
-    # increments due to proposal
-    ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
-
-    voldiff = 0
-    for p in keys(M)
-        voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
-    end
-
-    # are the keys of M and the keys of ΔC always the same? If so, we could
-    # maybe combine these pieces to make it faster
-
-    ΔC = cutDiff(Cts, I_, t, Z, Hyp, w, node2edges)
-    cdiff = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
-    mdiff = cdiff-voldiff
-
-    return mdiff, ΔV, Δμ, ΔM, ΔC
-end
+# function compute_moddiff(Cts,Hyp,w,node2edges,V::Array, μ::Array, M::Dict,I_::T, t::Int64, D::Vector{Int64}, Z::Vector{Int64},C::Dict,Ω;α) where T <: Union{Int64, Vector{Int64}}
+#     """
+#     NOTE: I_ can now be a Vector{Int64} of nodes, all of which are assumed to belong in the same cluster.
+#     """
+#     # increments due to proposal
+#     ΔV, Δμ, ΔM = increments(V, μ, M, I_, t, D, Z)
+#
+#     voldiff = 0
+#     for p in keys(M)
+#         voldiff += Ω(p;α=α,mode = "partition")*ΔM[p]*C[p]
+#     end
+#
+#     # are the keys of M and the keys of ΔC always the same? If so, we could
+#     # maybe combine these pieces to make it faster
+#
+#     ΔC = cutDiff(Cts, I_, t, Z, Hyp, w, node2edges)
+#     cdiff = sum(ΔC[p]*log(Ω(p; α=α, mode="partition")) for p in keys(ΔC))
+#     mdiff = cdiff-voldiff
+#
+#     return mdiff, ΔV, Δμ, ΔM, ΔC
+# end
 
 
 function SuperNeighborList(Hyp, SuperNodes,n)
@@ -414,8 +395,8 @@ function SuperNeighborList(Hyp, SuperNodes,n)
     end
 
     # binary (unweighted) supernodes-by-edges incidence matrix
-    Hnew = sparse(J,I,ones(length(I)),m,sn)
-    Neighbs = NeighborList(Hnew, sparse(Hnew'))
+    Hnew = SparseArrays.sparse(J,I,ones(length(I)),m,sn)
+    Neighbs = NeighborList(Hnew, SparseArrays.sparse(Hnew'))
     return Neighbs
 end
 
@@ -555,7 +536,7 @@ function Naive_SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxit
     return Z, changemade
 end
 
-function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
+function SuperNodeStep_(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true)
     """
     A Louvain step, but starting with all nodes in an arbitrary initial cluster
     assignment Z. Louvain only considers moving an entire cluster at once.
@@ -605,9 +586,10 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
 
     # Code for fast local changes in volumes
     r = kmax
+
     V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt);
     C = evalConstants(r)
-    Cts = evalCuts(Z,H)
+    Cts = evalCuts(H, Z, Ω)
 
     while improving && iter < maxits
 
@@ -692,6 +674,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
 
                 # Naive update of cuts
                 # Phil-- is there an analog of "addIncrements" but for cuts?
+                # PC: should be, just need to make it elegant
                 Cts = evalCuts(Z,H)
             end
         end
@@ -700,7 +683,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
     return Z, changemade
 end
 
-function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=True)
+function SuperNodeLouvain_(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=True)
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible
@@ -711,19 +694,18 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     return: Z::array{Int64, 1}: array of group labels.
     """
 
+
     phase = 1
     if verbose println("SuperNode Louvain: Phase $phase") end
-    Z = HyperLouvain(H,kmax,Ω;α=α, verbose=verbose)
+    Z = HyperLouvain_(H,kmax,Ω;α=α, verbose=verbose)
     n = length(Z)
 
-    if maximum(Z) != n
-        changed = true
-    end
+    changed = (maximum(Z) != n)
 
     while changed
         phase += 1
         if verbose println("SuperNode Louvain: Phase $phase") end
-        Z, changed = SuperNodeStep(H,Z,kmax,Ω;α=α,verbose=verbose)
+        Z, changed = SuperNodeStep_(H,Z,kmax,Ω;α=α,verbose=verbose)
     end
 
     return Z

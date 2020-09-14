@@ -8,6 +8,7 @@ import Random
 import SparseArrays
 import StatsBase
 import Base
+import NLopt
 import Optim
 
 include("omega.jl")
@@ -29,9 +30,12 @@ include("warmstart.jl")
 include("hyper_format.jl")
 include("hyperlouvain_helpers.jl")
 include("fast_hypergraph_louvain.jl")
-# include("hypergraph_louvain.jl") # PC: this is deprecated now, right? 
+include("hypergraph_louvain.jl") # PC: this is deprecated now, right?
 include("read_data.jl")
 include("analysis_helpers.jl")
+
+include("test_funs.jl")
+
 
 export partitionize
 export sampleSBM
@@ -85,6 +89,11 @@ export downSampleEdges!
 export computeDyadicResolutionParameter
 export dyadicModularity
 export dyadicLogLikelihood
+
+export partitionIntensityFunction
+export IntensityFunction
+export allOrNothingIntensityFunction
+export sumOfExteriorDegreesIntensityFunction
 
 export learnParameters
 end # module

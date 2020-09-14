@@ -1,5 +1,5 @@
 
-function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
+function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunction; α, bigInt::Bool=true)
     """
     Compute the modularity of a partition Z in a hypergraph H with interaction function Ω.
     H::hypergraph: the input hypergraph
@@ -42,24 +42,10 @@ end
 #     return objective
 # end
 
-function formObjective(H, Z, Ω)
-    ℓ = maximum(Z)
-    C       = evalCuts(Z,H)
-    V, μ, S = evalSums(Z,H,ℓ,true);
-    function objective(α)
-        obj = 0.0
-        for p in keys(S)
-            Op   = Ω(p; α=α, mode="partition")
-            obj += get(C, p, 0)*log(Op) - S[p]*Op
-        end
-        return -Float64(obj, RoundDown) # sign is for minimization
-    end
-    return objective
-end
 
 
 
-function L(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
+function logLikelihood(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunction; α, bigInt::Bool=true)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.
     H::hypergraph: the input hypergraph
@@ -91,38 +77,4 @@ function L(H::hypergraph, Z::Array{<:Integer, 1}, Ω; α, bigInt::Bool=true)
         end
     end
     return Q, K, C
-end
-
-function logLikelihood(H::hypergraph, Z::Array{<:Integer,1}, Ω::Any, ϑ::Array{Float64,1} = zeros(1); α)
-    """
-    Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.
-    This function is VERY slow and should generally only be used for testing purposes.
-    H::hypergraph: the input hypergraph
-    Z::array{Int64, 1}: array of group labels.
-    Ω: group interaction function, as constructed by ΩFromDict(D)
-    return: L::Float, the log-likelihood of H with parameters Z and Ω under the HSBM model.
-    """
-    n = length(Z)
-    L, C, V, K, R = 0.0, 0.0, 0.0, 0.0, 0.0
-
-    if ϑ == zeros(1)
-        ϑ = 1.0*H.D
-    end
-
-    for k in keys(H.E)
-        T = Combinatorics.with_replacement_combinations(1:n, k)
-        Ek = H.E[k]
-        for S in T
-
-            z = Z[S]
-            c = counting_coefficient(S)
-            θ = ϑ[S]
-
-            m = get(Ek, S, 0)
-
-            L += log(poisson_pdf(m, c*prod(θ)*Ω(z; α = α, mode="group")))
-        end
-    end
-
-    return(L)
 end

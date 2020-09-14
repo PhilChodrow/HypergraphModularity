@@ -219,25 +219,39 @@ end
 # COMPLETE COMPUTATION OF SECOND (VOLUME) TERM IN MODULARITY
 # ------------------------------------------------------------------------------
 
-function second_term_eval(H::hypergraph, Z::Vector{<:Integer}, Ω::Any; α, ℓ::Int64 = 0, bigInt::Bool=true)
+function aggregateSums(M, Ω::IntensityFunction)
+    M̂ = Dict()
+    for p in keys(M)
+        p̂ = Ω.aggregator(p)
+        M̂[p̂] = get(M̂, p̂, 0) + M[p]
+    end
+    return M̂
+end
+
+
+
+function second_term_eval(H::hypergraph, Z::Vector{<:Integer}, Ω::IntensityFunction; α, ℓ::Int64 = 0, bigInt::Bool=true)
     """
     Naive implementation, computes sums from scratch.
     H::hypergraph
     Z::Array{Int64, 1}, the group label vector.
-    ℓ::Int64, maximum hyperedges size in H
+    ℓ::Int64, number of groups
     Ω: group interation function (e.g., planted partition). Needs to have a mode argument which, when set to value "partition", will cause evaluation on partition vectors rather than label vectors.
     bigInt::Bool, whether to use bigInt conversions. Strongly recommended unless the instance is VERY small.
     """
 
-    obj = 0
+    obj = 0.0
 
     if ℓ == 0
         ℓ = maximum(Z)
     end
 
     V, μ, M = evalSums(Z, H, ℓ, bigInt)
-    for p in keys(M)
-        obj += Ω(p; α=α, mode = "partition")*M[p]
+    M̂ = aggregateSums(M, Ω)
+    for p̂ in keys(M̂)
+        if M̂[p̂] >= 1
+            obj += Ω.ω(p̂, α)*M̂[p̂]
+        end
     end
     return obj
 end

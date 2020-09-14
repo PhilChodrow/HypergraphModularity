@@ -1,49 +1,49 @@
 """
-The purpose of this module is to define a flexible stochastic blockmodel for hypergraphs. At this stage, all we are aiming to do is *sample* from the model give a partition, a group intensity function, and a degree vector. 
+The purpose of this module is to define a flexible stochastic blockmodel for hypergraphs. At this stage, all we are aiming to do is *sample* from the model give a partition, a group intensity function, and a degree vector.
 """
 
 Parameters.@with_kw mutable struct hypergraph
     """
-    A very simple hypergraph composite type, designed to hold a node list N, an edge list E, a degree sequence D, 
+    A very simple hypergraph composite type, designed to hold a node list N, an edge list E, a degree sequence D,
     """
 
     N::Vector{Int64}
-    E::Dict{Int64, Dict} 
+    E::Dict{Int64, Dict}
     D::Array{Int64, 1} = Array{Int64, 1}()
 
 end
 
-function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any)
+function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::IntensityFunction; α::Any)
     """
-    Sample a Poisson number of edges on a sequence of nodes S according to the hypergraph SBM law. 
-    S: an array of node indices 
-    Z: an integer array of length n. Each integer is a group label. 
+    Sample a Poisson number of edges on a sequence of nodes S according to the hypergraph SBM law.
+    S: an array of node indices
+    Z: an integer array of length n. Each integer is a group label.
     Ω: a group interaction function, such as plantedPartition
     Θ: a nonnegative float array of length n
     C: combinatorial factor
     """
     z = Z[S]
     θ = ϑ[S]
-    
+
     # combinatorial factor associated with repeated indices. Equivalent to sampling a separate Poisson for each of the c distinct permutations of the node labels S
-    c = counting_coefficient(S)    
-    X = Distributions.Poisson(prod(θ)*Ω(z; α=α, mode="group")*c)
+    c = counting_coefficient(S)
+    X = Distributions.Poisson(prod(θ)*Ω.ω(Ω.P(z), α)*c)
     return(rand(X))
 end
 
-function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any, kmax::Int64=3, kmin::Int64=2)
+function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::IntensityFunction; α::Any, kmax::Int64=3, kmin::Int64=2)
     """
     run sampleEdge() for each possible distinct sequence of no more than k_max node labels, allowing repeats, and concatenate the results as a single array (edge list)
-    The arrays Z and ϑ are required to be of the same length n. 
-    Returns a Dict, keyed by edgesize. 
-    Each value in this dict is itself a dict of edges, with counts, of the specified size. 
+    The arrays Z and ϑ are required to be of the same length n.
+    Returns a Dict, keyed by edgesize.
+    Each value in this dict is itself a dict of edges, with counts, of the specified size.
     """
     E = Dict{Int64, Dict}() # initialize empty edge list
     n = length(Z)           # number of nodes inferred from group labels
-    
+
     for k in kmin:kmax
         T = Combinatorics.with_replacement_combinations(1:n, k) # all distinct combos of k nodes
-        Ek = Dict{Vector{Int64}, Int64}()         # list of edges of size k 
+        Ek = Dict{Vector{Int64}, Int64}()         # list of edges of size k
         for S in T
             X = sampleEdge(S, Z, ϑ, Ω; α=α)
             if X > 0                              # only store combos with at least one edge
@@ -56,9 +56,9 @@ function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::Any; α::Any, km
     return(E, N)
 end
 
-function sampleEdges(Z::Dict, ϑ::Dict, Ω::Any; α::Any, kmax::Int64=3, kmin::Int64=2)
+function sampleEdges(Z::Dict, ϑ::Dict, Ω::IntensityFunction; α::Any, kmax::Int64=3, kmin::Int64=2)
     """
-    An alternative method when Z and ϑ are specified as dicts keyed by node rather than as arrays. 
+    An alternative method when Z and ϑ are specified as dicts keyed by node rather than as arrays.
     """
     Z = [Z[i] for i in 1:length(Z)]
     ϑ = [ϑ[i] for i in 1:length(ϑ)]
@@ -67,7 +67,7 @@ end
 
 function computeDegrees(E::Dict{Int64, Dict}, N::Vector{Int64})
     """
-    Compute the degree sequence of an edge list. 
+    Compute the degree sequence of an edge list.
     """
 
     d = zeros(length(N))
@@ -89,14 +89,14 @@ end
 
 function computeDegrees!(H::hypergraph)
     """
-    Compute the degree sequence of a hypergraph and store it as a field of the hypergraph. 
+    Compute the degree sequence of a hypergraph and store it as a field of the hypergraph.
     """
     H.D = computeDegrees(H)
 end
 
 function sampleSBM(args...;kwargs...)
     """
-    Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. This is the primary user-facing function for sampling tasks. 
+    Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. This is the primary user-facing function for sampling tasks.
     """
     E, N = sampleEdges(args...;kwargs...)
     H = hypergraph(E = E, N = N)
