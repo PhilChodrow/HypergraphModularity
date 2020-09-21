@@ -35,8 +35,8 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     SparseArrays.dropzeros!(A)
     A = SparseArrays.sparse(A+A')
     if binary
-        I,J,V = findnz(A)
-        A = sparse(I,J,ones(length(I)),n,n)
+        I,J,V = SparseArrays.findnz(A)
+        A = SparseArrays.sparse(I, J, 1, n, n)
     end
     return A
 end
@@ -77,12 +77,12 @@ end
 
 
 
-function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true)
+function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false)
     """
     compute the dyadic resolution parameter associated to a partition using the formula from Newman (2016): https://arxiv.org/abs/1606.02319
     """
 
-    G = CliqueExpansion(H, weighted)
+    G = CliqueExpansion(H, weighted, binary)
     I, J = SparseArrays.findnz(G)
     n = maximum(I) # number of nodes
     m = sum(G)/2     # number of edges
@@ -115,8 +115,8 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true)
     end
 end
 
-function dyadicModularity(H, Z, γ; weighted=true)
-    G = CliqueExpansion(H, weighted)
+function dyadicModularity(H, Z, γ; weighted=true, binary=false)
+    G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
     # non-degree (cut) term
@@ -146,8 +146,8 @@ function dyadicModularity(H, Z, γ; weighted=true)
     return Q / volG
 end
 
-function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false)
-    G = CliqueExpansion(H, weighted)
+function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false)
+    G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
     # Eq. (14) from https://arxiv.org/pdf/1606.02319.pdf
