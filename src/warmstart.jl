@@ -158,29 +158,3 @@ function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false)
     C = m * (ω_out + log(ω_out))
     return  B * Q + C
 end
-
-#=
-function dyadicLogLikelihood(H, Z, ω_in, ω_out, weighted=false)
-    G = CliqueExpansion(H, weighted)
-    n = length(H.D)
-
-    m = sum(G)/2     # number of edges
-    D = vec(sum(G, dims=1))
-    obj = 0.0
-
-    edge_obj = 0.0
-    for (i, j, v) in zip(SparseArrays.findnz(G)...)
-        ω = (Z[i] == Z[j]) ? ω_in : ω_out
-        edge_obj += v * log(ω)
-    end
-
-    deg_obj = ω_out * sum(D / sqrt(m))^2 / 2
-    for c in unique(Z)
-        inds = findall(Z .== c)
-        val = sum(D[inds])^2 / (2 * m)
-        deg_obj += (ω_in - ω_out) * val
-    end
-    
-    return (edge_obj - deg_obj) / 2.0
-end
-=#
