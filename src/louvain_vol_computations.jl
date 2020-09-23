@@ -31,8 +31,8 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
 
     Neighbs = NeighborList(node2edges, Hyp)  # Store neighbors of each node
 
-    d = H.D
-
+    @assert(H.D == d)
+    #d = H.D
     kmin = minimum(keys(H.E))
     Z = collect(1:n)                    # All nodes start in singleton clusters
     Clusters = Vector{Vector{Int64}}()  # Also store as cluster list
@@ -132,8 +132,8 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
                     Cj = Clusters[Cj_ind]       # The cluster
                     vJ = sum(d[Cj])
                     Δvol = 0
-                    for k = kmax:-1:kmin
-                        Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)
+                    for k = 1:kmax
+                        Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)  # Better if this is smaller
                     end
 
                     # Change in cut
@@ -145,7 +145,11 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
                         edge_noi = Cv_list[eid]
                         k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
-                        mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                        if k == 1
+                            mc = 0
+                        else
+                            mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                        end
                         Δcut += mc
                     end
 
@@ -153,8 +157,9 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
                     #     println("cut: $i,  $cdiff \t $Δcut")
                     # end
                     #
-                    if abs(voldiff-Δvol) > 1e-8 && checkvols
+                    if abs(voldiff-Δvol) > 1e-10 && checkvols
                         println("vol: $i,  old = $voldiff \t new = $Δvol))")
+                        # @show volvec
                         # println("vol: $i,  $(abs(voldiff-Δvol))")
                     end
 
