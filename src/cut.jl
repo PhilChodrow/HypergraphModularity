@@ -15,7 +15,8 @@ function first_term_eval(H::hypergraph,Z::Array{<:Integer,1}, Ω::IntensityFunct
         El = H.E[l]
         for edge in keys(El)
             p = Ω.P(Z[edge])
-            obj += El[edge]*log(Ω.ω(p, α))
+            a = Ω.aggregator(p)
+            obj += El[edge]*log(Ω.ω(a, α))
         end
     end
     return obj
