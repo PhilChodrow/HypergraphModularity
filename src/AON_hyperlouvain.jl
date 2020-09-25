@@ -416,7 +416,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                     Cj = Clusters[Cj_ind]       # The cluster
                     vJ = sum(d[Cj])
                     Δvol = 0
-                    for k = 1:kmax
+                    for k = 2:kmax
                         Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)  # Better if this is smaller
                     end
                     vtime += time()-tic
@@ -431,11 +431,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         edge_noi = Cv_list[eid]
                         k = esize[e]      # size of the edge
                         we = alp[k]*w[e]
-                        if k == 1
-                            mc = 0
-                        else
-                            mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
-                        end
+                        mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
                         Δcut += mc
                     end
                     ctime += time()-tic
@@ -671,8 +667,6 @@ function AON_Inputs(H,ω,α,kmax)
         edge_len[e] = length(e2n[e])
     end
     deg = vec(sum(He2n,dims = 1))
-    # @show H.D-deg
-    # @assert(deg == H.D)
 
     return cut_weights, vol_weights, e2n, n2e, edge_weights,deg,edge_len
 
