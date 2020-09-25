@@ -46,6 +46,6 @@ end
 
 function empiricalIntensityFunction(ω, kmax, aggregator; grad = nothing)
     range = [aggregator(p) for p in partitionsUpTo(kmax)]
-    P = partitionize
+    P = z->aggregator(partitionize(z))
     return IntensityFunction(ω, P, range, aggregator, grad)
 end
