@@ -23,7 +23,7 @@ function partitionize(a::Vector{<:Integer})
     end
     # v = v[v.>0]
     # return sort(v, rev = true)
-    v = sort!(v, rev = true)
+    sort!(v, rev = true)
     return sortedremovezeros(v)
 end
 
