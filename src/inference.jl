@@ -1,5 +1,5 @@
 function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity)
-    ℓ = maximum(k for k in keys(H.E)) # size of largest hyperedge
+    ℓ = maximum(keys(H.E))  # size of largest hyperedge
     S = evalSums(Z,H,ℓ,true)[3]
     
     C = Dict(p => 0.0 for p in partitionsUpTo(ℓ))
