@@ -85,6 +85,7 @@ export read_hypergraph_edges
 export L
 
 export downSampleEdges!
+export subhypergraph
 
 export computeDyadicResolutionParameter
 export dyadicModularity
