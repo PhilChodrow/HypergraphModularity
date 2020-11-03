@@ -15,7 +15,7 @@ mutable struct IntensityFunction
 end
 
 function partitionsUpTo(kmax)
-    return [p for k = 1:kmax for p in Combinatorics.partitions(k) ]
+    return [p for k = 1:kmax for p in Combinatorics.partitions(k)]
 end
 
 function partitionIntensityFunction(ω, kmax; grad = nothing)
