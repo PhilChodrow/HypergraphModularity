@@ -3,7 +3,7 @@ function first_term_eval(H::hypergraph,Z::Array{<:Integer,1}, Ω::IntensityFunct
     Not optimized, goal is to make this as quick and easy as
     possible using existing code.
     H: hypergraph
-    c: array storing cluster indices; Z[i] is the cluster node i is in
+    Z: array storing cluster indices; Z[i] is the cluster node i is in
     kmax: maximum hyperedges size in H
     Ω: group interation function (e.g., planted partition)
     """
@@ -27,7 +27,7 @@ function first_term_v2(H::Vector{Vector{Int64}},w::Array{Float64,1},Z::Array{Int
     Second version: store penalties first,
     and more importantly, a faster way to compute Ω(z_e)
     H: hypergraph just stored as an edge list
-    c: array storing cluster indices; Z[i] is the cluster node i is in
+    Z: array storing cluster indices; Z[i] is the cluster node i is in
     kmax: maximum hyperedges size in H
     Ω: Interaction function. Must have been built with option by_size = true using buildΩ().
     """
