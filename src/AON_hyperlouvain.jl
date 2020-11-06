@@ -23,8 +23,7 @@ function AN_HyperLouvain0(H::hypergraph,node2edges::Vector{Vector{Int64}},edge2n
 
     # He2n, w = hypergraph2incidence(H)
     # Hn2e = sparse(He2n')
-    println("Running new all-or-nothing HyperLouvain")
-    verbose = true
+    if verbose println("Running new all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
     n = length(node2edges)
 
@@ -241,9 +240,8 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
         n2e = incidence2elist(He2n,true)
         dSuper = condense_d(d,Z_old)
         ########
-
         # Step 1: Go back to greedy local moves, this time on the reduced hypergraph
-        Zsuper, improved = ANHL_Step(n2e,e2n,wSuper,dSuper,elenSuper,alp,bet,kmax)
+        Zsuper, improved = ANHL_Step(n2e,e2n,wSuper,dSuper,elenSuper,alp,bet,kmax,randflag,maxits,verbose)
         N = length(Zsuper)    # N = number of supernodes = number clusters from last round
 
         @assert(minimum(Zsuper)>0)
@@ -290,7 +288,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
     """
-    println("One step of all-or-nothing HyperLouvain")
+    if verbose println("One step of all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
     n = length(node2edges)
 
@@ -431,7 +429,11 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         edge_noi = Cv_list[eid]
                         k = esize[e]      # size of the edge
                         we = alp[k]*w[e]
-                        mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                        if k > 1
+                            mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                        else
+                            mc = 0
+                        end
                         Δcut += mc
                     end
                     ctime += time()-tic
@@ -474,12 +476,12 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     mainloop = time()-mainstart
     if ~changemade
         improved = false
-        println("No nodes moved clusters")
+        if verbose println("No nodes moved clusters") end
     else
         improved = true
     end
     # @show vtime, ctime, etime
-    println("Main loop took $mainloop seconds")
+    if verbose println("Main loop took $mainloop seconds") end
     Z, Clusters = renumber(Z,Clusters)
     return Z, improved
 
@@ -670,4 +672,32 @@ function AON_Inputs(H,ω,α,kmax)
 
     return cut_weights, vol_weights, e2n, n2e, edge_weights,deg,edge_len
 
+end
+
+
+
+function Hmat_to_Hypergraph(H::SparseMatrixCSC, maxsize::Int64=25)
+    """
+    Converts a binary hypergraph incidence matrix to type "hypergraph"
+    """
+    E = Dict{Integer, Dict}()
+    elist = incidence2elist(H)
+    for edge in elist
+        sort!(edge)
+        if length(edge) > maxsize; continue; end
+        sz = length(edge)
+        if !haskey(E, sz)
+            E[sz] = Dict{}()
+        end
+        E[sz][edge] = 1
+    end
+
+    D = zeros(Int64, n)
+    for (sz, edges) in E
+        for (e, _) in edges
+            D[e] .+= 1
+        end
+    end
+    N = 1:n
+    return hypergraph(N, E, D)
 end
