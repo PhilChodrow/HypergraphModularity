@@ -31,8 +31,9 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
 
     Neighbs = NeighborList(node2edges, Hyp)  # Store neighbors of each node
 
-    @assert(H.D == d)
-    #d = H.D
+
+    d = vec(sum(He2n,dims = 1))
+
     kmin = minimum(keys(H.E))
     Z = collect(1:n)                    # All nodes start in singleton clusters
     Clusters = Vector{Vector{Int64}}()  # Also store as cluster list
@@ -145,10 +146,10 @@ function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFuncti
                         edge_noi = Cv_list[eid]
                         k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
-                        if k == 1
-                            mc = 0
-                        else
+                        if k > 1
                             mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                        else
+                            mc = 0
                         end
                         Δcut += mc
                     end
