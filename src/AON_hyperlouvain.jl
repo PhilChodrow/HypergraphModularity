@@ -4,9 +4,9 @@
 # of making it.
 
 # include("hyperlouvain_helpers.jl")
-include("hyper_format.jl")
+# include("hyper_format.jl")
 # include("AON_helpers.jl")
-include("HSBM.jl")
+# include("HSBM.jl")
 
 function AN_HyperLouvain0(H::hypergraph,node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
     w::Vector{Float64},d::Vector{Int64},
@@ -22,7 +22,7 @@ function AN_HyperLouvain0(H::hypergraph,node2edges::Vector{Vector{Int64}},edge2n
     maxits = 100
 
     # He2n, w = hypergraph2incidence(H)
-    # Hn2e = sparse(He2n')
+    # Hn2e = SparseArrays.sparse(He2n')
     if verbose println("Running new all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
     n = length(node2edges)
@@ -190,7 +190,7 @@ end
 
 function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
     edge2nodes::Vector{Vector{Int64}},w::Vector{Float64},
-    d::Vector{Float64},esize::Vector{Int64},
+    d::Vector{Float64},elen::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},
     kmax::Int64,randflag::Bool=false,maxits::Int64=100,verbose::Bool=true,
     Zwarm::Vector{Int64}=Vector{Int64}())
@@ -203,7 +203,7 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
         * edge2nodes[e] = list of node labels that edge e contains
         * w[e] = weight of hyperedge e
         * d[i] = degree or weight of node i
-        * esize[e] = number of nodes in hyperedge e
+        * elen[e] = number of nodes in hyperedge e
                      note that this may be > length(edge2nodes[e])
                      if some of the nodes are supernodes
         * alp = scaling values of for hyperedge cuts
@@ -281,7 +281,7 @@ Upgrades:
     * allows you to randomize node order
 """
 function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
-    w::Vector{Float64},d::Vector{Float64},esize::Vector{Int64},
+    w::Vector{Float64},d::Vector{Float64},elen::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},kmax::Int64,
     randflag::Bool=false,maxits::Int64=100,verbose::Bool=true,Zwarm::Vector{Int64}=Vector{Int64}())
     """
@@ -427,7 +427,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         # cluster Ci to cluster Cj
                         e = Cv[eid]
                         edge_noi = Cv_list[eid]
-                        k = esize[e]      # size of the edge
+                        k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
                         if k > 1
                             mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
@@ -662,7 +662,7 @@ function AON_Inputs(H,ω,α,kmax)
 
     He2n, edge_weights = hypergraph2incidence(H)
     e2n = incidence2elist(He2n);
-    n2e = incidence2elist(sparse(He2n'));
+    n2e = incidence2elist(SparseArrays.sparse(He2n'));
     m = length(e2n)
     edge_len = zeros(Int64,m)
     for e = 1:m
@@ -678,7 +678,7 @@ end
 
 
 
-function Hmat_to_Hypergraph(H::SparseMatrixCSC, maxsize::Int64=25)
+function Hmat_to_Hypergraph(H::SparseArrays.SparseMatrixCSC, maxsize::Int64=25)
     """
     Converts a binary hypergraph incidence matrix to type "hypergraph"
     """
