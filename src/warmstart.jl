@@ -52,6 +52,18 @@ function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bo
     return VanillaModularity(A,gamma,randflag)
 end
 
+function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,maxits::Int64=100)
+    """
+    Perform a clique expansion on the hypergraph H and then run vanilla
+    modularity on the resulting graph.
+    """
+    He2n, w = hypergraph2incidence(H)
+    m,n = size(He2n)
+    A = [spzeros(n,n) He2n'; He2n spzeros(m,m) ]
+    Za = VanillaModularity(A,gamma,randflag,maxits)
+    return Za[1:n]
+end
+
 
 function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,maxits::Int64=10000)
     """
@@ -107,7 +119,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     V = [sum(D[Z .== c]) for c in unique(Z)]
     ω_in = 4*m*m_in / (sum(V.^2))
     ω_out = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
-    
+
     if mode == "γ"
         γ = (ω_in - ω_out)/(log(ω_in) - log(ω_out))
         return γ

@@ -36,6 +36,8 @@ include("analysis_helpers.jl")
 
 include("test_funs.jl")
 
+include("AON_hyperlouvain.jl")
+
 
 export partitionize
 export sampleSBM
@@ -97,4 +99,9 @@ export allOrNothingIntensityFunction
 export sumOfExteriorDegreesIntensityFunction
 
 export learnParameters
+
+export AON_Inputs
+export SuperNode_PPLouvain
+
+
 end # module

@@ -74,14 +74,19 @@ Clusters[j] = (integer array) node IDs for nodes in cluster j
 function renumber(c::Vector{Int64},Clusters::Vector{Vector{Int}})
 
     n = length(c)
-    map = unique(c)
+    map = sort(unique(c))     # map from new cluster ID to old cluster ID
+    old2new = Dict()    # map from old cluster ID to new cluster ID
+    for i = 1:length(map)
+        old2new[map[i]] = i
+    end
     cnew = zeros(Int64,n)
 
     Clusters = Clusters[map]
 
     # Rename the clusters
     for i = 1:n
-        newClus = findfirst(x->x == c[i],map)
+        # newClus = findfirst(x->x == c[i],map)
+        newClus = old2new[c[i]]
         cnew[i] = newClus
         push!(Clusters[newClus],i)
     end
@@ -97,13 +102,16 @@ See above function, this function doesn't care about the Clusters array
 function renumber(c::Vector{Int64})
 
     n = length(c)
-    map = sort(unique(c))
+    map = sort(unique(c))     # map from new cluster ID to old cluster ID
+    old2new = Dict()          # map from old cluster ID to new cluster ID
+    for i = 1:length(map)
+        old2new[map[i]] = i
+    end
     cnew = zeros(Int64,n)
 
     # Rename the clusters
     for i = 1:n
-        newClus = findfirst(x->x == c[i],map)
-        cnew[i] = newClus
+        cnew[i] = old2new[c[i]]
     end
 
     return cnew
@@ -195,6 +203,8 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
             # Extract what that new clustering is
             c_new = zeros(Int64,n)
 
+            Clusters = clusters_from_cvec(c_old)
+
             # For each supernode, place all original node IDs that make it up
             # into a cluster of the supernodes label
             for i = 1:N
@@ -205,7 +215,8 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
                 # Get individual node ID that are in supernode i.
 
                 # findall is slow, but this typically won't need to be called many times
-                SuperI_nodes = findall(x->x==i,c_old)
+                # SuperI_nodes = findall(x->x==i,c_old)
+                SuperI_nodes = Clusters[i]
                 c_new[SuperI_nodes] .= SuperI_Cluster
             end
             Cs = [Cs c_new]
@@ -217,11 +228,28 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
 end
 
 """
+From a cluster indicator vector, extract a vector of vectors storing clusters
+"""
+
+function clusters_from_cvec(c::Vector{Int64})
+
+    Clusters = Vector{Vector{Int64}}()
+    for v = 1:maximum(c)
+        push!(Clusters, Vector{Int64}())
+    end
+    for i = 1:length(c)
+        push!(Clusters[c[i]],i)
+    end
+    return Clusters
+end
+
+
+"""
 Run Step 1 of the Louvain algorithm: iterate through nodes and greedily move
 nodes to adjacent clusters.
 """
 function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf)
-    @assert(LinearAlgebra.issymmetric(A))
+    # @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
     # println("Merging $n Communities")
 
@@ -267,29 +295,14 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
         # visit each node in turn
         for i = 1:n
 
-            # println("\n\t NODE $i")
-
             # Cluster index for node i
             Ci_ind = c[i]
 
             # Get the indices of nodes in i's cluster
-            # Ci = findall(x->x == Ci_ind,c) # findall is slow!
             Ci = Clusters[Ci_ind]
-
-            # Get the indices of i's neighbors--these define clusters
-            # we MIGHT move to.
-            #   NOT SURE IF THIS WILL BE EXACTLY THE SAME FOR HYPERGRAPH MODULARITY!
 
             # Ni = findall(x->x>0, A[i,:]) # findall is slow!
             Ni = Neighbs[i]
-
-            ##################################################################
-            # THIS IS THE PART THAT REQUIRES THE MOST UPDATING FOR HYPERGRAPH MODULARITY!
-            # This is where we compute whether a greedy local move
-            # would lead to an improved objective score. The next
-            # several blocks of code can hopefully eventually be replaced
-            # by a call to a function that does a greedy local move for one node.
-            ##################################################################
 
             ## First few lines here essentially compute the current contribution
             # this node i has on the objective, based on its current cluster placement
@@ -391,16 +404,23 @@ that you can then run the same greedy node-moving on supernodes.
 function collapse_clustering(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},c::Vector{Int64})
 
     n = size(A,1)
-    # Storing clusters in an array of arrays help speed many aspects of the
-    # code up.
-    # Here we're just setting up singleton clusters for each node.
     Clusters = Vector{Vector{Int64}}()
+    ClusterNeighbs = Vector{Set{Int64}}()
+    Neighbs, degvec = ConstructAdj(A,n)
+
     for v = 1:maximum(c)
         push!(Clusters, Vector{Int64}())
+        push!(ClusterNeighbs, Set{Int64}())
     end
 
     for i = 1:n
         push!(Clusters[c[i]],i)
+        # Also keep track of which clusters are adjacent clusters
+        for j in Neighbs[i]
+            if c[j] != c[i]
+                push!(ClusterNeighbs[c[i]],c[j])
+            end
+        end
     end
 
     # Number of supernodes to form = number of clusters
@@ -410,34 +430,33 @@ function collapse_clustering(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::V
     J = Vector{Int64}()
     V = Vector{Float64}()
     wnew = zeros(N)
-    Anew = zeros(N,N)
-    start = time()
-
     # Construct a new sparse matrix with new node weights
     for i = 1:N
-        #Ci = findall(x->x == i,c)
-        # using findall is extremely slow. Here's a faster version of this:
-        Ci = Clusters[i]
+        Ci = sort(Clusters[i])
         wnew[i] = sum(w[Ci])
-        ACi = A[Ci,:]
-        for j = i+1:N
+        # println("new")
+        # @time ACi = sparse(A[:,Ci]')
+        # @time A[Ci,:]
+        ACi = A[:,Ci]
+        for j in ClusterNeighbs[i]
             Cj = Clusters[j]
-            Eij = sum(ACi[:,Cj])
-            Anew[i,j] = Eij
+            Eij = sum(ACi[Cj,:])
+            # @assert(Eij > 0)
+            push!(I,i)
+            push!(J,j)
+            push!(V,Eij)
+            # Anew[i,j] = Eij
         end
     end
-    getedges = time()-start
 
-    start = time()
-    # Anew = sparse(I,J,V,N,N)
+    Anew = sparse(I,J,V,N,N)
     Anew = Anew+Anew'
-    Anew = SparseArrays.sparse(Anew)
 
     return Anew, wnew
 end
 
 
-## Sort sizes: Return a set of cluster sizes, arranged in order
+# Sort sizes: Return a set of cluster sizes, arranged in order
 function ClusterSizes(c)
     c = renumber(c)
 
