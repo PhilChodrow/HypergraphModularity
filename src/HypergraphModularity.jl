@@ -103,5 +103,8 @@ export learnParameters
 export AON_Inputs
 export SuperNode_PPLouvain
 
+export mutualInformation
+
+export hyperedges
 
 end # module

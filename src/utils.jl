@@ -44,3 +44,39 @@ end
 function poisson_pdf(x::Integer, λ::Float64)
     exp(-λ)*λ^x/factorial(big(x))
 end
+
+function mutualInformation(Z, Ẑ, normalized = false)
+    n = length(Z)
+    
+    p_XY = Dict()
+    p_X = Dict()
+    p_Y = Dict()
+
+    for i = 1:length(Z)
+        p_XY[(Z[i], Ẑ[i])] = get!(p_XY, (Z[i], Ẑ[i]), 0) + 1/n
+        p_X[Z[i]]          = get!(p_X, Z[i], 0)          + 1/n
+        p_Y[Ẑ[i]]          = get!(p_Y, Ẑ[i], 0)          + 1/n
+    end
+    
+    I = 0
+    for x in keys(p_X), y in keys(p_Y)
+        try
+            I += p_XY[x,y]*log(p_XY[x,y]/(p_X[x]*p_Y[y]))
+        catch e
+            nothing
+        end
+    end
+    
+    if normalized
+        H_X, H_Y = 0, 0
+        for x in keys(p_X)
+            H_X -= log(p_X[x])*p_X[x]
+        end
+        for y in keys(p_Y)
+            H_Y -= log(p_Y[y])*p_Y[y]
+        end
+        return (2*I)/(H_X + H_Y)
+    end
+    
+    return I
+end

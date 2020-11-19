@@ -35,19 +35,59 @@ function read_hypergraph_edges(dataname::String, maxsize::Int64=25)
     return E
 end
 
-function read_hypergraph_data(dataname::String, maxsize::Int64=25)
-    labels = read_hypergraph_labels(dataname)
+function read_hypergraph_data(dataname::String, maxsize::Int64=25, return_labels = true)
+    
     E = read_hypergraph_edges(dataname, maxsize)
     
-    n = length(labels)
+    n = maximum([maximum(e) for k in keys(E) for e in keys(E[k])])
     D = zeros(Int64, n)
     for (sz, edges) in E
         for (e, _) in edges
             D[e] .+= 1
         end
     end
-
+    
+    maxedges = maximum(keys(E))
+    for k in 1:maxedges
+        if !haskey(E, k)
+            E[k] = Dict{}()
+        end
+    end
+    
     N = 1:n
-    return hypergraph(N, E, D), labels
+    
+    if return_labels
+        labels = read_hypergraph_labels(dataname)
+        return hypergraph(N, E, D), labels
+    end
+    
+    return hypergraph(N, E, D)
 end
 ;
+
+function hyperedges(dataname::String)
+    nverts = Int64[]
+    open("$(dataname)-nverts.txt") do f
+        for line in eachline(f); push!(nverts, parse(Int64, line)); end
+    end
+    simps = Int64[]
+    open("$(dataname)-simplices.txt") do f
+        for line in eachline(f); push!(simps, parse(Int64, line)); end
+    end
+    edges = Set{Set{Int64}}()
+    ind = 0
+    for nvert in nverts
+        edge = Set{Int64}(simps[(ind + 1):(ind + nvert)])
+        push!(edges, edge)
+        ind += nvert
+    end
+    open("hyperedges-$(dataname).txt", "w") do f
+        for edge in edges
+            vedge = collect(edge)
+            sort!(vedge)
+            s = join(vedge, ",")
+            write(f, "$s\n")
+        end
+    end
+end
+

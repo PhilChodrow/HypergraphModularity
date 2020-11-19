@@ -449,7 +449,7 @@ function collapse_clustering(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::V
         end
     end
 
-    Anew = sparse(I,J,V,N,N)
+    Anew = SparseArrays.sparse(I,J,V,N,N)
     Anew = Anew+Anew'
 
     return Anew, wnew

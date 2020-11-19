@@ -96,7 +96,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
 
     G = CliqueExpansion(H, weighted, binary)
     I, J = SparseArrays.findnz(G)
-    n = maximum(I) # number of nodes
+    n = length(H.D)  # number of nodes
     m = sum(G)/2     # number of edges
 
     # form degree sequence and edge counts

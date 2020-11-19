@@ -8,6 +8,16 @@
 # include("AON_helpers.jl")
 # include("HSBM.jl")
 
+
+function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
+    randflag = !(scan_order == "lexical")
+    cut_weights, vol_weights, e2n, n2e,w,d,elen = AON_Inputs(H,Ω.ω,α,kmax)
+    Zset = SuperNode_PPLouvain(n2e,e2n,w,d,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Z0);
+    Z = Zset[:,end];
+    return Z
+end
+
+
 function AN_HyperLouvain0(H::hypergraph,node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
     w::Vector{Float64},d::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},kmax::Int64,Ω; α)
@@ -287,6 +297,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
+    PC: I believe this assumes that there are no degenerate edges. 
     """
     if verbose println("One step of all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
@@ -396,6 +407,8 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
 
             # Set of hyperedges that node i is in, but don't include i itself
             Cv_list = edgelists[i]
+            
+
 
             # Volume of the set currently
             vS = sum(d[Ci])
@@ -427,6 +440,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         # cluster Ci to cluster Cj
                         e = Cv[eid]
                         edge_noi = Cv_list[eid]
+                        
                         k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
                         if k > 1
@@ -655,7 +669,7 @@ function AON_Inputs(H,ω,α,kmax)
     """
     cut_weights = zeros(kmax)
     vol_weights = zeros(kmax)
-    for k = 1:kmax
+    for k = 2:kmax
         cut_weights[k] = log(ω([1,k],α))-log(ω([0,k],α))
         vol_weights[k] = ω([1,k],α)-ω([0,k],α)
     end
