@@ -1,4 +1,4 @@
-function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity)
+function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums = false)
     ℓ = maximum(keys(H.E))  # size of largest hyperedge
     S = evalSums(Z,H,maximum(Z),true)[3]
     
@@ -11,16 +11,29 @@ function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity)
         end
     end
     
-    C_agg = Dict{Any,Float64}()
-    S_agg = Dict{Any,Float64}()
     
-    C_agg = Dict(aggregator(p) => 0.0 for p in keys(S))
-    S_agg = Dict(aggregator(p) => 0.0 for p in keys(S))
+#     T = big ? Union{Float64, BigInt, BigFloat} : Float64
+    
+#     C_agg = Dict{Any,T}()
+#     S_agg = Dict{Any,T}()
+    
+    if bigNums
+        C_agg = Dict(aggregator(p) => big(0.0) for p in keys(S))
+        S_agg = Dict(aggregator(p) => big(0.0) for p in keys(S))
+    else
+        C_agg = Dict(aggregator(p) => 0.0 for p in keys(S))
+        S_agg = Dict(aggregator(p) => 0.0 for p in keys(S))
+    end
         
     for p in keys(S)
         agg_key = aggregator(p)
-        C_agg[agg_key] += get(C, p, min_val)
-        S_agg[agg_key] += get(S, p, min_val)
+        if bigNums
+            C_agg[agg_key] += get(C, p, big(min_val))
+            S_agg[agg_key] += get(S, p, big(min_val))
+        else
+            C_agg[agg_key] += get(C, p, min_val)
+            S_agg[agg_key] += get(S, p, min_val)
+        end
     end
     
     ω̂ = Dict(a => C_agg[a] / S_agg[a] for a in keys(C_agg))

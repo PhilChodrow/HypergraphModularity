@@ -46,6 +46,11 @@ function poisson_pdf(x::Integer, λ::Float64)
 end
 
 function mutualInformation(Z, Ẑ, normalized = false)
+    """
+    Mutual information between two clusterings, optionally normalized
+    Probably can be computed MUCH faster, but unlikely to be a bottleneck 
+    in context. 
+    """
     n = length(Z)
     
     p_XY = Dict()

@@ -8,9 +8,9 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     weighted clique with each edge having weight 1/(|e| - 1)
     """
     n = length(H.D)
-    I = Vector{Int64}()
-    J = Vector{Int64}()
-    V = Vector{Float64}()
+    I = Int64[]
+    J = Int64[]
+    V = Float64[]
     ks = setdiff(keys(H.E),1)
     for k in ks
         for edge in keys(H.E[k])
@@ -22,20 +22,22 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
                     push!(I,ei)
                     push!(J,ej)
                     if weighted
-                        push!(V,weight/(k-1))
+                        push!(V, weight / (k - 1))
                     else
-                        push!(V,weight)
+                        push!(V, weight)
                     end
                 end
             end
         end
     end
     A = SparseArrays.sparse(I,J,V,n,n)
-    for i = 1:n; A[i,i] = 0.0; end
+    for i = 1:n
+        A[i, i] = 0.0
+    end
     SparseArrays.dropzeros!(A)
     A = SparseArrays.sparse(A+A')
     if binary
-        I,J,V = SparseArrays.findnz(A)
+        I, J, V = SparseArrays.findnz(A)
         A = SparseArrays.sparse(I, J, 1, n, n)
     end
     return A
@@ -96,17 +98,17 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
 
     G = CliqueExpansion(H, weighted, binary)
     I, J = SparseArrays.findnz(G)
+
     n = length(H.D)  # number of nodes
     m = sum(G)/2     # number of edges
 
     # form degree sequence and edge counts
-    D = zero(1.0.*collect(1:n))
+    D = vec(sum(G, dims=1))
 
     m_in = 0
     m_out = 0
 
     for k in 1:length(I)
-        D[I[k]] += G[I[k], J[k]]
         if Z[I[k]] == Z[J[k]]
             m_in  += G[I[k], J[k]]/2
         else
@@ -115,7 +117,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     end
 
     # compute resolution parameter
-    V = [sum(D[Z.==k]) for k in 1:maximum(Z)]
+    V = [sum(D[Z .== c]) for c in unique(Z)]
     ω_in = 4*m*m_in / (sum(V.^2))
     ω_out = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
 
@@ -126,6 +128,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
         return(ω_in, ω_out)
     end
 end
+
 
 function dyadicModularity(H, Z, γ; weighted=true, binary=false)
     G = CliqueExpansion(H, weighted, binary)
@@ -158,7 +161,7 @@ function dyadicModularity(H, Z, γ; weighted=true, binary=false)
     return Q / volG
 end
 
-function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false)
+function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false, constants = false)
     G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
@@ -168,5 +171,11 @@ function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false)
     m = sum(d) / 2
     B = m * log(ω_in / ω_out)
     C = m * (ω_out + log(ω_out))
+    
+    if constants
+        K = sum(SpecialFunctions.loggamma.(SparseArrays.nonzeros(G).+1)) / 2
+        return  B * Q + C - K
+    end
+    
     return  B * Q + C
 end

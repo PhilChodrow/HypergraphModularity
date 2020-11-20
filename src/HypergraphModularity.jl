@@ -10,6 +10,7 @@ import StatsBase
 import Base
 import NLopt
 import Optim
+import SpecialFunctions
 
 include("omega.jl")
 include("HSBM.jl")
