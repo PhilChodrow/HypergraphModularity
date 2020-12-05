@@ -1,3 +1,6 @@
+# PC QUESTION: is this file deprecated? Most of the remaining compilation
+# warnings are coming from here. 
+
 function evalCuts(Z::Array{Int64,1}, H::hypergraph)
     """
     Gets map from partition type to the number of times that partition type

@@ -15,36 +15,6 @@ function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunction
     return cut - vol
 end
 
-# function parameterEstimateObjective(H::hypergraph, Z::Array{<:Integer, 1}, Ω; ℓ::Int64 = 0, bigInt::Bool=true)
-#     """
-#     An efficient way to compute the modularity objective for varying intensity function parameter α, useful for learning α from partitions.
-#     Probably there is a better way to implement this via currying.
-#     """
-
-#     if ℓ == 0
-#         ℓ = maximum(Z)
-#     end
-
-#     C = evalCuts(Z, H)
-#     V, μ, M = evalSums(Z, H, ℓ, bigInt)
-
-#     function objective(α)
-#         obj = 0
-#         for p in keys(M)
-#             Op = Ω(p;α=α, mode="partition")
-#             obj -= M[p]*Op
-#             if p in keys(C)
-#                 obj += C[p]*log(Op)
-#             end
-#         end
-#         return -obj # for minimization
-#     end
-#     return objective
-# end
-
-
-
-
 function logLikelihood(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunction; α, bigInt::Bool=true)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.

@@ -1,3 +1,6 @@
+# PC QUESTION: Am I right in thinking that these are only used in the fast_hypergraph_louvain.jl? Maybe we move them there? 
+
+
 # These are some useful functions for converting back and forth between
 # different ways to store hypergraphs.
 

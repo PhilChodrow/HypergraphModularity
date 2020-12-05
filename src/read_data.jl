@@ -93,3 +93,30 @@ function hyperedges(dataname::String)
     end
 end
 
+function read_stats_data(kmax=0)
+    path = "data/SCC2016-with-abs/SCC2016/Data/authorPaperBiadj.txt"
+    A = DelimitedFiles.readdlm(path, '\t', Int, '\n');
+    
+    n = size(A)[1]
+    N = 1:n
+    E = Dict()
+    if kmax == 0
+        kmax = maximum(sum(A, dims = 1))
+    end
+    E = Dict(k => Dict() for k ∈ 2:kmax)
+
+    for j ∈ 1:size(A)[2]
+        k = sum(A[:,j])
+        if k >= 2
+            if k <= kmax
+                authors = findall(x -> (x ≈ 1), A[:,j])
+                sort!(authors)
+                E[k][authors] = get(E[k], authors, 0) + 1
+            end
+        end
+    end
+
+    H = HypergraphModularity.hypergraph(N, E, zero(N))
+    HypergraphModularity.computeDegrees!(H);
+    return H
+end

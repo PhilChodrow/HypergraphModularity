@@ -11,12 +11,6 @@ function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums =
         end
     end
     
-    
-#     T = big ? Union{Float64, BigInt, BigFloat} : Float64
-    
-#     C_agg = Dict{Any,T}()
-#     S_agg = Dict{Any,T}()
-    
     if bigNums
         C_agg = Dict(aggregator(p) => big(0.0) for p in keys(S))
         S_agg = Dict(aggregator(p) => big(0.0) for p in keys(S))
@@ -40,8 +34,6 @@ function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums =
             
     return empiricalIntensityFunction((p, α) -> ω̂[p], ℓ, aggregator)
 end
-
-
 
 function learnParameters(H, Z, Ω, α0; n_iters = 10, amin = 0, amax = 10)    
     
@@ -85,26 +77,3 @@ function formObjective(H, Z, Ω)
 end
 
 
-# function learnParameters(H, Z, Ω, α0; verbose = false, ftol_abs = 1e-6, maxeval = 100000)
-#     """
-#     a more reliable optimization to learn parameters given a partition, using the COBYLA algorithm from NLopt. 
-#     returns both the optimal α and the objective value at that point. 
-#     """
-    
-        
-#     k = length(α0)
-    
-#     obj = formObjective(H, Z, Ω)
-    
-#     opt = NLopt.Opt(:LN_COBYLA, k)
-#     opt.min_objective = obj
-
-#     opt.ftol_abs = ftol_abs
-#     opt.maxeval = maxeval
-#     (minf,minx,ret) = NLopt.optimize(opt, α0)
-#     numevals = opt.numevals;
-#     if verbose
-#         println("got $minf at $minx after $numevals iterations (returned $ret)")
-#     end
-#     return(minx, minf)
-# end

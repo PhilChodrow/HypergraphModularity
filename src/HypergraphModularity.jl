@@ -11,6 +11,7 @@ import Base
 import NLopt
 import Optim
 import SpecialFunctions
+import DelimitedFiles
 
 include("omega.jl")
 include("HSBM.jl")
@@ -27,7 +28,7 @@ include("inference.jl")
 include("objectives.jl")
 
 include("graph_louvain.jl")
-include("warmstart.jl")
+include("dyadic.jl")
 include("hyper_format.jl")
 include("hyperlouvain_helpers.jl")
 include("fast_hypergraph_louvain.jl")
@@ -107,5 +108,6 @@ export SuperNode_PPLouvain
 export mutualInformation
 
 export hyperedges
+export read_stats_data
 
 end # module

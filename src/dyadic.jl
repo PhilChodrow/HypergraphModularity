@@ -1,6 +1,5 @@
-# Warm-start
-include("graph_louvain.jl")
-include("HSBM.jl")
+# PC SUGGESTION: maybe we move these functions all over 
+# to graph_louvain.jl? 
 
 function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     """
@@ -88,8 +87,6 @@ function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma:
 
     return c
 end
-
-
 
 function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false)
     """

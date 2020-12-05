@@ -1,8 +1,3 @@
-
-# The purpose of the functions in this module is to streamline the computation of the change in modularity associated with moving a group of nodes, assumed to belong to the same cluster (i.e. a "super node") to a different cluster.
-
-
-
 function cutDiff(C, I, t, Z, Hyp, w, node2edges, Ω)
     """
     C: Dict{Vector{Int64}, Int64}, the dict of current cut values as would be produced by evalCuts().

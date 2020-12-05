@@ -1,17 +1,4 @@
-include("omega.jl")
-include("HSBM.jl")
-include("cut.jl")
-include("vol.jl")
-include("utils.jl")
-include("dict_ops.jl")
-include("diffs.jl")
-include("inference.jl")
-include("objectives.jl")
-include("graph_louvain.jl")
-include("warmstart.jl")
-include("hyper_format.jl")
-include("hyperlouvain_helpers.jl")
-include("read_data.jl")
+# PC QUESTION: not sure whether this file is use. I think that the include statements that used to be in here were a major source of the compilation errors. 
 
 function HyperLouvain_Vols(H::hypergraph,kmax::Int64,alp,bet,Ω::IntensityFunction,checkvols::Bool=false,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
     """

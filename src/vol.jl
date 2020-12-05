@@ -109,13 +109,9 @@ end
 
 # Extra methods for evalSums for working with degree dicts and the custom hypergraph class.
 
-function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer, ℓ::Integer=0, bigInt::Bool=true)
-    return evalSums(Z, D, r; ℓ=ℓ, bigInt=bigInt)
-end
-
-function evalSums(Z::Vector{<:Integer}, H::hypergraph, ℓ::Integer=0, bigInt::Bool=true)
+function evalSums(Z::Vector{<:Integer}, H::hypergraph, ℓ::Integer=maximum(Z), bigInt::Bool=true, constants::Bool = true)
     r = maximum(keys(H.E))
-    return evalSums(Z, H.D, r, ℓ, bigInt)
+    return evalSums(Z, H.D, r; constants = constants, ℓ = ℓ, bigInt = bigInt)
 end
 
 # ------------------------------------------------------------------------------
@@ -211,7 +207,7 @@ function addIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vect
     M::Dict{Array{Int64, 1}, bigInt}, the Dict of uncorrected volume sums.
     ΔV, Δμ, ΔM: increments in each of the above quantities returned by increments()
     """
-    M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
+    M̃ = M + ΔM 
     return(V + ΔV, μ + Δμ, M̃)
 end
 
