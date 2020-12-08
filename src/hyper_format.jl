@@ -1,5 +1,63 @@
-# PC QUESTION: Am I right in thinking that these are only used in the fast_hypergraph_louvain.jl? Maybe we move them there? 
+"""
+The way the Louvain code works, you start with n clusters (singletons), and as nodes
+move, many of these become empty. At certain points in the algorithm, it is
+helpful to renumber the cluster IDs, so that they go from 1 to M where
+M = number of non-empty clusters.
 
+e.g. c = [2 3 5 3 9] ---> c = [1 2 3 2 4]
+
+This version does this with both the Clusters array of arrays AND
+the cluster indicator vector c:
+
+c[i] = (integer) cluster ID that node i belongs to
+Clusters[j] = (integer array) node IDs for nodes in cluster j
+"""
+function renumber(c::Vector{Int64},Clusters::Vector{Vector{Int}})
+
+    n = length(c)
+    map = sort(unique(c))     # map from new cluster ID to old cluster ID
+    old2new = Dict()    # map from old cluster ID to new cluster ID
+    for i = 1:length(map)
+        old2new[map[i]] = i
+    end
+    cnew = zeros(Int64,n)
+
+    Clusters = Clusters[map]
+
+    # Rename the clusters
+    for i = 1:n
+        # newClus = findfirst(x->x == c[i],map)
+        newClus = old2new[c[i]]
+        cnew[i] = newClus
+        push!(Clusters[newClus],i)
+    end
+
+    return cnew, Clusters
+
+end
+
+
+"""
+See above function, this function doesn't care about the Clusters array
+"""
+function renumber(c::Vector{Int64})
+
+    n = length(c)
+    map = sort(unique(c))     # map from new cluster ID to old cluster ID
+    old2new = Dict()          # map from old cluster ID to new cluster ID
+    for i = 1:length(map)
+        old2new[map[i]] = i
+    end
+    cnew = zeros(Int64,n)
+
+    # Rename the clusters
+    for i = 1:n
+        cnew[i] = old2new[c[i]]
+    end
+
+    return cnew
+
+end
 
 # These are some useful functions for converting back and forth between
 # different ways to store hypergraphs.

@@ -1,14 +1,192 @@
-"""
-ConstructAdj: Construct Adjacency List
-This takes in a sparse adjacency matrix for a graph, and returns an adjacency
-list. While it seems inefficient to store the matrix in multiple ways, as long
-as there are no terrible memory issues, it is VERY handy to be able to quickly
-get a list of neighbors for each node.
+function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
+    """
+    Weighted clique expansion where a hyperedge e is expanded to a
+    weighted clique with each edge having weight 1/(|e| - 1)
+    """
+    n = length(H.D)
+    I = Int64[]
+    J = Int64[]
+    V = Float64[]
+    ks = setdiff(keys(H.E),1)
+    for k in ks
+        for edge in keys(H.E[k])
+            weight = H.E[k][edge]
+            for i = 1:k-1
+                ei = edge[i]
+                for j = i+1:k
+                    ej = edge[j]
+                    push!(I,ei)
+                    push!(J,ej)
+                    if weighted
+                        push!(V, weight / (k - 1))
+                    else
+                        push!(V, weight)
+                    end
+                end
+            end
+        end
+    end
+    A = SparseArrays.sparse(I,J,V,n,n)
+    for i = 1:n
+        A[i, i] = 0.0
+    end
+    SparseArrays.dropzeros!(A)
+    A = SparseArrays.sparse(A+A')
+    if binary
+        I, J, V = SparseArrays.findnz(A)
+        A = SparseArrays.sparse(I, J, 1, n, n)
+    end
+    return A
+end
 
-The function also returns the degree vector d. This is NOT the weighted degree,
-    d[i] = total number of neighbors of node i
-"""
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false)
+    """
+    Perform a clique expansion on the hypergraph H and then run vanilla
+    modularity on the resulting graph.
+    """
+    A = CliqueExpansion(H,weighted,binary)
+    return VanillaModularity(A,gamma,randflag)
+end
+
+function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,maxits::Int64=100)
+    """
+    Perform a clique expansion on the hypergraph H and then run vanilla
+    modularity on the resulting graph.
+    """
+    He2n, w = hypergraph2incidence(H)
+    m,n = size(He2n)
+    A = [spzeros(n,n) He2n'; He2n spzeros(m,m) ]
+    Za = VanillaModularity(A,gamma,randflag,maxits)
+    return Za[1:n]
+end
+
+
+function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,maxits::Int64=10000)
+    """
+    Vanilla modularity algorithm, obtained by calling the LambdaLouvain algorithm
+    implementation from:
+
+    Parameterized Correlation Clustering in Hypergraphs and Bipartite Graphs
+    https://arxiv.org/abs/2002.09460
+
+    Code: https://github.com/nveldt/ParamCC/blob/master/src/Graph_Louvain.jl
+    """
+
+
+    d = vec(sum(A,dims = 2))
+    n = length(d)
+    vol = sum(d)
+    lam = gamma/vol
+    Cs = LambdaLouvain(A,d,lam,randflag,maxits)
+
+    c = Cs[:,end]
+    @assert(length(c) == n)
+
+    return c
+end
+
+function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false)
+    """
+    compute the dyadic resolution parameter associated to a partition using the formula from Newman (2016): https://arxiv.org/abs/1606.02319
+    """
+
+    G = CliqueExpansion(H, weighted, binary)
+    I, J = SparseArrays.findnz(G)
+
+    n = length(H.D)  # number of nodes
+    m = sum(G)/2     # number of edges
+
+    # form degree sequence and edge counts
+    D = vec(sum(G, dims=1))
+
+    m_in = 0
+    m_out = 0
+
+    for k in 1:length(I)
+        if Z[I[k]] == Z[J[k]]
+            m_in  += G[I[k], J[k]]/2
+        else
+            m_out += G[I[k], J[k]]/2
+        end
+    end
+
+    # compute resolution parameter
+    V = [sum(D[Z .== c]) for c in unique(Z)]
+    ωᵢ = 4*m*m_in / (sum(V.^2))
+    ωₒ = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
+
+    if mode == "γ"
+        γ = (ωᵢ - ωₒ)/(log(ωᵢ) - log(ωₒ))
+        return γ
+    else
+        return(ωᵢ, ωₒ)
+    end
+end
+
+
+function dyadicModularity(H, Z, γ; weighted=true, binary=false)
+    G = CliqueExpansion(H, weighted, binary)
+    d = vec(sum(G, dims=1))
+
+    # non-degree (cut) term
+    edge_obj = 0.0
+    for (i, j, v) in zip(SparseArrays.findnz(G)...)
+        if Z[i] == Z[j]
+            edge_obj += v
+        end
+    end
+
+    # volume terms
+    vols = Dict{Int64, Float64}()
+    for c in unique(Z)
+        vols[c] = 0.0
+    end
+    for i = 1:length(d)
+        vols[Z[i]] += d[i]
+    end
+
+    Q = edge_obj
+    volG = sum(d)
+    vol_term = 0.0
+    for c in unique(Z)
+        Q -= γ * vols[c]^2 / volG
+    end
+
+    return Q / volG
+end
+
+function dyadicLogLikelihood(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false)
+    G = CliqueExpansion(H, weighted, binary)
+    d = vec(sum(G, dims=1))
+
+    # Eq. (14) from https://arxiv.org/pdf/1606.02319.pdf
+    γ = (ωᵢ - ωₒ) / (log(ωᵢ) - log(ωₒ))
+    Q = dyadicModularity(H, Z, γ; weighted=weighted)
+    m = sum(d) / 2
+    B = m * log(ωᵢ / ωₒ)
+    C = m * (ωₒ + log(ωₒ))
+
+    if constants
+        K = sum(SpecialFunctions.loggamma.(SparseArrays.nonzeros(G).+1)) / 2
+        return B * Q + C - K
+    end
+    return B * Q + C
+end
+
+
+# Below are functions for just graph louvain, nothing about hypergraphs
+
 function ConstructAdj(C::SparseArrays.SparseMatrixCSC,n::Int64)
+    """
+    ConstructAdj: Construct Adjacency List
+    This takes in a sparse adjacency matrix for a graph, and returns an adjacency
+    list. While it seems inefficient to store the matrix in multiple ways, as long
+    as there are no terrible memory issues, it is VERY handy to be able to quickly
+    get a list of neighbors for each node.
+
+    The function also returns the degree vector d. This is NOT the weighted degree,
+        d[i] = total number of neighbors of node i
+    """
     rp = C.rowval
     ci = C.colptr
     Neighbs = Vector{Vector{Int64}}()
@@ -56,67 +234,6 @@ function LamCCobj(A::SparseArrays.SparseMatrixCSC,c,w,lam)
     return obj
 end
 
-
-"""
-The way the Louvain code works, you start with n clusters (singletons), and as nodes
-move, many of these become empty. At certain points in the algorithm, it is
-helpful to renumber the cluster IDs, so that they go from 1 to M where
-M = number of non-empty clusters.
-
-e.g. c = [2 3 5 3 9] ---> c = [1 2 3 2 4]
-
-This version does this with both the Clusters array of arrays AND
-the cluster indicator vector c:
-
-c[i] = (integer) cluster ID that node i belongs to
-Clusters[j] = (integer array) node IDs for nodes in cluster j
-"""
-function renumber(c::Vector{Int64},Clusters::Vector{Vector{Int}})
-
-    n = length(c)
-    map = sort(unique(c))     # map from new cluster ID to old cluster ID
-    old2new = Dict()    # map from old cluster ID to new cluster ID
-    for i = 1:length(map)
-        old2new[map[i]] = i
-    end
-    cnew = zeros(Int64,n)
-
-    Clusters = Clusters[map]
-
-    # Rename the clusters
-    for i = 1:n
-        # newClus = findfirst(x->x == c[i],map)
-        newClus = old2new[c[i]]
-        cnew[i] = newClus
-        push!(Clusters[newClus],i)
-    end
-
-    return cnew, Clusters
-
-end
-
-
-"""
-See above function, this function doesn't care about the Clusters array
-"""
-function renumber(c::Vector{Int64})
-
-    n = length(c)
-    map = sort(unique(c))     # map from new cluster ID to old cluster ID
-    old2new = Dict()          # map from old cluster ID to new cluster ID
-    for i = 1:length(map)
-        old2new[map[i]] = i
-    end
-    cnew = zeros(Int64,n)
-
-    # Rename the clusters
-    for i = 1:n
-        cnew[i] = old2new[c[i]]
-    end
-
-    return cnew
-
-end
 
 """
 Run the Louvain algorithm many times, taking the result with the best objective.
