@@ -32,11 +32,11 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
     C = evalConstants(r)
 
     cuts = evalCuts(H, Z, Ω)
-    
-    # initialize memoization of edge penalties 
+
+    # initialize memoization of edge penalties
     Pn           = [log(Ω.ω(Ω.P(collect(1:i)), α)) for i in 1:kmax]
     edge2penalty = [w[e]*Pn[length(Hyp[e])] for e in 1:length(Hyp)]
-    
+
 
     # Main Greedy Local Move Loop
     while improving && iter < maxits
@@ -46,10 +46,10 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
             if verbose println("Louvain Iteration $iter") end
         end
         improving = false
-    
-        
+
+
         scan = scan_order == "lexical" ? (1:n) : Random.shuffle(1:n)
-        
+
         for i = scan                     # visit each node in turn
 
             Ci_ind = Z[i]               # Cluster index for node i
@@ -74,7 +74,7 @@ function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::In
                 else
                     ΔV, Δμ, ΔM = increments(V, μ, M, [i], Cj_ind, H.D, Z)
                     voldiff = sum(Ω.ω(Ω.aggregator(p),α)*ΔM[p]*C[p] for p in keys(ΔM))
-                    
+
                     cdiff, Δpen = CutDiff_OneNode(Hyp,w,node2edges,Z,i,Cj_ind,edge2penalty,Ω;α=α) # NOTE: need to check on this
                     change =  cdiff - voldiff
 #                     println(cdiff, " ", voldiff)
@@ -317,9 +317,9 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     if verbose println("Faster SuperNode Louvain: Phase $phase") end
     Z = HyperLouvain(H,kmax,Ω;α=α,verbose=verbose,scan_order=scan_order)
     n = length(Z)
-    
+
     changed = (maximum(Z) != n)
-    
+
     while changed
         phase += 1
         if verbose println("SuperNode Louvain: Phase $phase") end
@@ -330,132 +330,121 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
 end
 
 
-function HyperLouvain_0(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=verbose)
+function evalCuts(Z::Array{Int64,1}, H::hypergraph)
     """
-    Basic step Louvain algorithm: iterate through nodes and greedily move
-    nodes to adjacent clusters. Does not form supernodes and does not recurse.
-
-    H: hypergraph
-    Ω: group interaction function, as constructed by ΩFromDict(D)
-    bigInt::Bool: whether to convert the degree sequence to an array of BigInt when evaluating the volume term in second_term_eval(). Recommended.
-    return: Z::array{Int64, 1}: array of group labels.
+    Gets map from partition type to the number of times that partition type
+    shows up in edges for the clustering Z
     """
-    Hyp, w = hyperedge_formatting(H)    # hyperedge to node list
-    node2edges = EdgeMap(H)             # node to hyperedge list
-    n = length(H.D)
-
-    Neighbs = NeighborList(node2edges, Hyp)  # Store neighbors of each node
-
-
-    Z = collect(1:n)                    # All nodes start in singleton clusters
-    Clusters = Vector{Vector{Int64}}()  # Also store as cluster list
-    for v = 1:n
-        push!(Clusters, Vector{Int64}())
-        push!(Clusters[v],v)
-    end
-
-    iter = 0
-    improving = true
-    changemade = false
-
-    # Data structures for fast local changes in volumes
-    r = kmax
-    V, μ, M = evalSums(Z, H.D, r;constants=false, bigInt=bigInt)
-    C = evalConstants(r)
-
-    # Data structures for fast local changes in cuts
-    Cts = evalCuts(Z,H)                    # edge partition -> no. times it appears in Z
-    edge2part = Vector{Vector{Int64}}()    # edge id -> partition type
-    for e = 1:length(Hyp)
-        edge = Hyp[e]
-        push!(edge2part,partitionize(Z[edge]))
-    end
-
-    # Main Greedy Local Move Loop
-    while improving && iter < maxits
-
-        iter += 1
-        if mod(iter,1) == 0;
-            if verbose println("Louvain Iteration $iter") end
+    C = Dict{Vector{Int64}, Int64}()
+    for k in keys(H.E)
+        Ek = H.E[k]
+        for e in keys(Ek)
+            p = partitionize(Z[e])
+            C[p] = get(C, p, 0) + Ek[e]
         end
-        improving = false
+    end
+    return C
+end
 
-        for i = 1:n                     # visit each node in turn
+function CutDiff_Many(C, I, t, Z, Hyp, w, node2edges,edge2part)
+    """
+    C: Dict{Vector{Int64}, Int64}, the dict of current cut values as would be produced by evalCuts().
+        C is keyed by partition vectors p.
+        C[p] is the # of edges with label partition p.
+        Note: Ω is NOT used in the calculation of C
+    I: Vector{Int64}, the list of nodes to move, assumed to be in the same group
+    t: Int64, the new group to which to move the nodes I
+    Z: Vector{Int64}, the current group assignments
+    Hyp: list of nodes in each hyperedge
+    w:  weight of the hyperedge (number of times this set of nodes is assigned a hyperedge)
+    node2edges: node ID to list of edges the node is in.
+    edge2part: for hyperedge index e, returns the current partitionize vector for e for the clustering Z
+    return: ΔC, a Dict{Vector{Int64}, Int64}, where ΔC[p] is the change in C[p] caused by moving the nodes in I to group t
+    """
 
-            Ci_ind = Z[i]               # Cluster index for node i
-            Ci = Clusters[Ci_ind]       # Indices of nodes in i's cluster
-            Ni = Neighbs[i]             # Get the indices of i's neighbors
-            NC = unique(Z[Ni])          # Clusters adjacent to i (candidate moves)
-            # println("$i = i, length(NC) = $(length(NC))")
+    E_id = Vector{Int64}()  # edge IDs that invole some node from I
+    for i in I
+        append!(E_id,node2edges[i])
+    end
+    E = unique(E_id)
 
-            BestZ = Z[i]                # The default is do nothing
-            BestImprove = 0
-            V_best = 0
-            μ_best = 0
-            M_best = 0
-            C_best = 0
-            e2p_best = 0
+    # This stores proposed changes to edge partitions
+    Δe2p = Dict{Int64,Vector{Int64}}()
 
-            # Check if it's better to move to a nearby cluster, Cj
-            for j = 1:length(NC)
-                Cj_ind = NC[j]
+    # Store changes in the number of partition types in the clustering
+    ΔC = Dict(p => 0 for p in keys(C))
 
-                # Check improvement for move from cluster i to to cluster j
-                if Cj_ind == Ci_ind
-                    change = 0
-                else
-                    change, ΔV, Δμ, ΔM, ΔC, Δe2p = compute_moddiff(edge2part,Cts,Hyp, w, node2edges,V, μ, M, [i], Cj_ind, H.D, Z, C, Ω; α=α)
-                end
+    Z_prop = copy(Z)    # Store the proposed new clustering
+    Z_prop[I] .= t
 
-                # Check if this is currently the best possible greedy move
-                if change - BestImprove > 1e-8
-                    V_best = ΔV
-                    μ_best = Δμ
-                    M_best = ΔM
-                    C_best = ΔC
-                    e2p_best = Δe2p
-                    BestImprove = change
-                    BestZ = Cj_ind
-                    improving = true
-                end
-            end
+    for eid in E
+        e = Hyp[eid]    # get nodes in edge
+        we = w[eid]     # get the edge weight
 
-            # Move i to the best new cluster, if it strictly improves modularity
-            if BestImprove > 1e-8
+        p_old = edge2part[eid]  # instead of: pold = partitionize(Z[e])
+        p_new = partitionize(Z_prop[e])
+        Δe2p[eid] = p_new
 
-                changemade = true
-                improving = true    # we have a reason to keep iterating!
+        # Update number of partition types for p_old and p_new
+        ΔC[p_old] -= we
+        ΔC[p_new] = get(ΔC,p_new,0) + we
 
-                # update increments for volume computation
-                V, μ, M = addIncrements(V, μ, M, V_best, μ_best, M_best)
+    end
+    return ΔC, Δe2p
+end
 
-                # update clustering
-                ci_old = Z[i]
-                Z[i] = BestZ
 
-                # Remove i from its old cluster and add it to its new cluster
-                Clusters[ci_old] = setdiff(Clusters[ci_old],i)
-                push!(Clusters[BestZ],i)
+function CutDiff_OneNode(H::Vector{Vector{Int64}},w::Array{Float64,1},node2edges::Vector{Vector{Int64}},Z::Array{Int64,1}, I::Int64,J::Int64,edge2penalty::Vector{Float64},Ω::IntensityFunction; α)
+    """
+    CutDiff: Compute change in the first term of the modularity function
+    resulting from moving a node I to cluster J.
+    """
+    orig = Z[I]
+    He   = node2edges[I]
+    Δpen = Dict{Int64,Float64}()    # Change in penalty for moving a node
 
-                # Update map from partition type to number of those partitions
-                for part in keys(C_best)
-                    Δcount = C_best[part]
-                    Cts[part] = get(Cts,part,0) + Δcount
-                end
+    obj  = 0
+    Z[I] = J
+    for i in He
+        e        = H[i]
+        z        = Z[e]                      # set of clusters
+        new_pen = w[i]*log(Ω.ω(Ω.P(z),α))   # new penalty if this move is made
+        Δpen[i]  = new_pen
+        obj     += Δpen[i]-edge2penalty[i]
+    end
+    Z[I] = orig
 
-                # update map from edge ID to partition type
-                for eid in keys(e2p_best)
-                    newpart = e2p_best[eid]
-                    edge2part[eid] = newpart
-                end
-            end
+    return obj, Δpen
+end
+
+function SuperNeighborList(Hyp, SuperNodes,n)
+    """
+    For an initial clustering into supernodes, get a list of other supernodes
+    adjacenct to each supernode
+    """
+    H = elist2incidence(Hyp,n)
+    m = size(H,1)
+    sn = length(SuperNodes)
+    I = Vector{Int64}()
+    J = Vector{Int64}()
+
+    for s = 1:sn
+        # For supernode j, get indices of all other supernodes i such that
+        # some node in j shares a node with some node in i
+        S = SuperNodes[s]
+
+        # this is silly and slow. But also not a bottleneck, so I'm
+        # not worrying about making it faster right now
+        Edges = findall(x->x>0,vec(sum(H[:,S],dims = 2)))  # all hyperedges nodes from S touch
+
+        for e in Edges
+            push!(I,s)
+            push!(J,e)
         end
     end
 
-    if ~changemade
-        if verbose println("No nodes moved clusters") end
-    end
-    Z, Clusters = renumber(Z,Clusters)
-    return Z
-
+    # binary (unweighted) supernodes-by-edges incidence matrix
+    Hnew = SparseArrays.sparse(J,I,ones(length(I)),m,sn)
+    Neighbs = NeighborList(Hnew, SparseArrays.sparse(Hnew'))
+    return Neighbs
 end
