@@ -1,3 +1,26 @@
+function first_term_eval(H::hypergraph,Z::Array{<:Integer,1}, Ω::IntensityFunction; α)
+    """
+    Not optimized, goal is to make this as quick and easy as
+    possible using existing code.
+    H: hypergraph
+    Z: array storing cluster indices; Z[i] is the cluster node i is in
+    kmax: maximum hyperedges size in H
+    Ω: group interation function (e.g., planted partition)
+    """
+
+    kmin, kmax = minimum(keys(H.E)), maximum(keys(H.E))
+
+    obj = 0
+    for l = kmin:kmax
+        El = H.E[l]
+        for edge in keys(El)
+            p = Ω.P(Z[edge])
+#             a = Ω.aggregator(p)
+            obj += El[edge]*log(Ω.ω(p, α))
+        end
+    end
+    return obj
+end
 
 function modularity(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunction; α, bigInt::Bool=true)
     """
