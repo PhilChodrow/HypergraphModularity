@@ -207,11 +207,8 @@ end
 
 function hyperedge_formatting(H::hypergraph)
     """
-    Convert a hypergraph from old to new format.
-    PC: I find that first_term_v2 is around twice as fast as first_term_eval -- if that turns out to make enough of a difference, then maybe this should actually be our core data structure?
-    PC: If I understand correctly, this is advantageous to do because indexing Arrays is faster than Dict lookups?
-    NV: Yes, might be worth considering making this the standard format, but probably not first priority at this point though.
-    NV: Also yes, historically I have found arrays to be more forgiving than dictionaries in Julia
+    Convert a hypergraph from dictionary-based format (type 'hypergraph')
+    to Hyperedge list with weights vector
     """
     Hyperedges = Vector{Vector{Int64}}()
     weights = Vector{Float64}()
@@ -227,7 +224,7 @@ end
 
 function hypergraph2incidence(H::hypergraph)
     """
-    Convert dictionary hypergraph format to binary edge x node incidence matrix
+    Convert dictionary hypergraph format to binary edge-by-node incidence matrix
     """
     Hyperedges = Vector{Vector{Int64}}()
     weights = Vector{Float64}()
