@@ -32,12 +32,10 @@ include("inference.jl")
 include("objectives.jl")
 
 include("graph_louvain.jl")
-include("dyadic.jl")
 #include("hyper_format.jl")
 include("louvain_utils.jl")
 #include("hyperlouvain_helpers.jl")
 include("general_hypergraph_louvain.jl")
-#include("hypergraph_louvain.jl") # PC: this is deprecated now, right?
 include("read_data.jl")          # we should move this out of the package
 include("analysis_helpers.jl")   # this too
 
@@ -117,4 +115,5 @@ export read_stats_data
 export read_cora
 export readTemporalData
 export subHypergraph
+export dyadicLogLikelihoodDirect
 end # module

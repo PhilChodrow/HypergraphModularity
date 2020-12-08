@@ -173,6 +173,26 @@ function dyadicLogLikelihood(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, c
     return B * Q + C
 end
 
+function dyadicLogLikelihoodDirect(H, Z, ωᵢ, ωₒ)
+    """
+    A naive version of the dyadic log-likelihood calculation, used only for testing the fast one. 
+    """
+    G = CliqueExpansion(H, false, false)
+    d = vec(sum(G, dims=1))
+    m = sum(d)/2
+    L = 0.0
+    for (i, j, v) in zip(SparseArrays.findnz(G)...)
+        if i < j
+            a = G[i,j]
+            ω = Z[i] == Z[j] ? ωᵢ : ωₒ
+            L += log(poisson_pdf(Int(a), ω*d[i]*d[j]/(2m)))
+        end
+    end
+    return L
+end
+
+
+
 
 # Below are functions for just graph louvain, nothing about hypergraphs
 

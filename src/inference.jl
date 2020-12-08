@@ -75,5 +75,3 @@ function formObjective(H, Z, Ω)
     end
     return objective
 end
-
-

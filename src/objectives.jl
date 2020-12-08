@@ -70,3 +70,7 @@ function logLikelihood(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunct
     end
     return Q, K, C
 end
+
+
+
+

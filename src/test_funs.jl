@@ -190,22 +190,3 @@ function modularityNaive(H, Z, Ω; α)
     return Q
 end
 
-
-function dyadicLogLikelihoodNaive(H, Z, ωᵢ, ωₒ; weighted=false, binary=false)
-    """
-    A naive version of the dyadic log-likelihood calculation, used only for testing the fast one. 
-    """
-    G = CliqueExpansion(H, weighted, binary)
-    d = vec(sum(G, dims=1))
-    m = sum(d)/2
-    L = 0.0
-    for (i, j, v) in zip(SparseArrays.findnz(G)...)
-        if i < j
-            a = G[i,j] + G[j,i]
-            ω = Z[i] == Z[j] ? ωᵢ : ωₒ
-            L += log(poisson_pdf(Int(a), ω*d[i]*d[j]/(2m)))
-        end
-    end
-    return L
-end
-
