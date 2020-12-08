@@ -115,14 +115,14 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
 
     # compute resolution parameter
     V = [sum(D[Z .== c]) for c in unique(Z)]
-    ω_in = 4*m*m_in / (sum(V.^2))
-    ω_out = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
+    ωᵢ = 4*m*m_in / (sum(V.^2))
+    ωₒ = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
 
     if mode == "γ"
-        γ = (ω_in - ω_out)/(log(ω_in) - log(ω_out))
+        γ = (ωᵢ - ωₒ)/(log(ωᵢ) - log(ωₒ))
         return γ
     else
-        return(ω_in, ω_out)
+        return(ωᵢ, ωₒ)
     end
 end
 
@@ -158,21 +158,21 @@ function dyadicModularity(H, Z, γ; weighted=true, binary=false)
     return Q / volG
 end
 
-function dyadicLogLikelihood(H, Z, ω_in, ω_out; weighted=false, binary=false, constants = false)
+function dyadicLogLikelihood(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false)
     G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
     # Eq. (14) from https://arxiv.org/pdf/1606.02319.pdf
-    γ = (ω_in - ω_out) / (log(ω_in) - log(ω_out))
+    γ = (ωᵢ - ωₒ) / (log(ωᵢ) - log(ωₒ))
     Q = dyadicModularity(H, Z, γ; weighted=weighted)
     m = sum(d) / 2
-    B = m * log(ω_in / ω_out)
-    C = m * (ω_out + log(ω_out))
+    B = m * log(ωᵢ / ωₒ)
+    C = m * (ωₒ + log(ωₒ))
     
     if constants
         K = sum(SpecialFunctions.loggamma.(SparseArrays.nonzeros(G).+1)) / 2
-        return  B * Q + C - K
+        return B * Q + C - K
     end
-    
-    return  B * Q + C
+    return B * Q + C
 end
+

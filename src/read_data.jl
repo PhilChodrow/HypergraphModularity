@@ -120,3 +120,56 @@ function read_stats_data(kmax=0)
     HypergraphModularity.computeDegrees!(H);
     return H
 end
+
+function readTemporalData(name; kmax = 20, tmin = 0, tmax = 2050)
+    
+    prefix = "data/$name/$name"
+    
+    nverts    = open(prefix * "-nverts.txt") do f
+        parse.(Int64, collect(eachline(f)))
+    end
+
+    simplices = open(prefix * "-simplices.txt") do f
+        parse.(Int64, collect(eachline(f)))
+    end
+
+    times     = open(prefix * "-times.txt") do f
+        parse.(Int64, collect(eachline(f)))
+    end
+    
+    j = 1
+    edges = []
+
+    for i ∈ 1:length(nverts)
+        e = simplices[j:(j+nverts[i]-1)]
+        push!(edges, (e, nverts[i], times[i]))
+        j += nverts[i]
+    end
+    
+    subset = [e for e in edges if (length(e[1]) >= 2) & (e[3] ∈ tmin:tmax)];
+
+    nodes = unique(collect(Iterators.flatten([e[1] for e in subset])))
+    nodemap = Dict(zip(nodes, 1:length(nodes)));
+
+    function recode(e)
+        return [[nodemap[i] for i in e[1]], e[2], e[3]]
+    end
+
+    subset = [recode(e) for e in subset];
+
+    
+    E = Dict(k => Dict() for k ∈ 2:kmax)
+
+    for e in subset
+        sort!(e[1])
+        if e[2] ∈ keys(E)
+            E[e[2]][e[1]] = get(E[e[2]], e[1], 0) + 1
+        end
+    end
+
+    H = HypergraphModularity.hypergraph(1:length(nodes), E, [0])
+    HypergraphModularity.computeDegrees!(H);
+    
+    return H
+end
+

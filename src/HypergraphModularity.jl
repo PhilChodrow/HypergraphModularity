@@ -11,7 +11,11 @@ import Base
 import NLopt
 import Optim
 import SpecialFunctions
-import DelimitedFiles
+import DelimitedFiles  # 
+# eventually move this and the contents of the read_data 
+# module over to a separate script, probably in test, 
+# as it is not part of the core hypergraph modularity 
+# suite
 
 include("omega.jl")
 include("HSBM.jl")
@@ -33,8 +37,8 @@ include("hyper_format.jl")
 include("hyperlouvain_helpers.jl")
 include("fast_hypergraph_louvain.jl")
 include("hypergraph_louvain.jl") # PC: this is deprecated now, right?
-include("read_data.jl")
-include("analysis_helpers.jl")
+include("read_data.jl")          # we should move this out of the package
+include("analysis_helpers.jl")   # this too
 
 include("test_funs.jl")
 
@@ -109,5 +113,7 @@ export mutualInformation
 
 export hyperedges
 export read_stats_data
-
+export read_cora
+export readTemporalData
+export subHypergraph
 end # module

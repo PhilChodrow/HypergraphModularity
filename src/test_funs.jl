@@ -114,7 +114,6 @@ end
 function naiveSecondTerm(H::hypergraph, Z::Vector{<:Integer}, Ω::IntensityFunction; α)
     """
     A naive evaluation of the second term of the modularity functional, for testing purposes.
-    Looks like it is VERY bugged in some way that is strangely difficult to pin down.
     """
 
     n = length(H.D)
@@ -135,7 +134,7 @@ function naiveSecondTerm(H::hypergraph, Z::Vector{<:Integer}, Ω::IntensityFunct
     return obj
 end
 
-function logLikelihoodNaive(H::hypergraph, Z::Array{<:Integer,1}, Ω::IntensityFunction, ϑ::Array{Float64,1} = zeros(1); α)
+function logLikelihoodNaive(H::hypergraph, Z::Array{<:Integer,1}, Ω::IntensityFunction, ϑ::Array{Float64,1} = 1.0*H.D; α)
     """
     Compute the HSBM log-likelihood of a partition Z in a hypergraph H with interaction function Ω.
     This function is VERY slow and should generally only be used for testing purposes.
@@ -146,10 +145,6 @@ function logLikelihoodNaive(H::hypergraph, Z::Array{<:Integer,1}, Ω::IntensityF
     """
     n = length(Z)
     L = 0.0
-
-    if ϑ == zeros(1)
-        ϑ = 1.0*H.D
-    end
 
     for k in keys(H.E)
         T = Combinatorics.with_replacement_combinations(1:n, k)
@@ -163,7 +158,9 @@ function logLikelihoodNaive(H::hypergraph, Z::Array{<:Integer,1}, Ω::IntensityF
             m = get(Ek, S, 0)
 
             p = Ω.P(z)
-            L += log(poisson_pdf(m, c*prod(θ)*Ω.ω(p, α)))
+            λ = c*prod(θ)*Ω.ω(p, α)
+            p = exp(-λ)*λ^m/factorial(big(m))
+            L += log(p)
         end
     end
 
@@ -192,3 +189,23 @@ function modularityNaive(H, Z, Ω; α)
     end
     return Q
 end
+
+
+function dyadicLogLikelihoodNaive(H, Z, ωᵢ, ωₒ; weighted=false, binary=false)
+    """
+    A naive version of the dyadic log-likelihood calculation, used only for testing the fast one. 
+    """
+    G = CliqueExpansion(H, weighted, binary)
+    d = vec(sum(G, dims=1))
+    m = sum(d)/2
+    L = 0.0
+    for (i, j, v) in zip(SparseArrays.findnz(G)...)
+        if i < j
+            a = G[i,j] + G[j,i]
+            ω = Z[i] == Z[j] ? ωᵢ : ωₒ
+            L += log(poisson_pdf(Int(a), ω*d[i]*d[j]/(2m)))
+        end
+    end
+    return L
+end
+

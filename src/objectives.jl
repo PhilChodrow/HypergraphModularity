@@ -26,7 +26,7 @@ function logLikelihood(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunct
     """
     Q = modularity(H, Z, Ω; α=α, bigInt=bigInt)
 
-    D = computeDegrees(H)
+    D = H.D
 
     K, C = 0, 0
 
@@ -39,7 +39,6 @@ function logLikelihood(H::hypergraph, Z::Array{<:Integer, 1}, Ω::IntensityFunct
             El = H.E[ℓ]
             for edge in keys(El)
                 c = counting_coefficient(edge)
-                if c < 0 print("woops") end
                 weight = El[edge]
                 K += weight*sum(logD[edge])
                 C += weight*log(c) - log(factorial(weight)) # can maybe improve on performance here?

@@ -207,7 +207,7 @@ function addIncrements(V::Vector{<:Integer}, μ::Vector{<:Integer}, M::Dict{Vect
     M::Dict{Array{Int64, 1}, bigInt}, the Dict of uncorrected volume sums.
     ΔV, Δμ, ΔM: increments in each of the above quantities returned by increments()
     """
-    M̃ = M + ΔM 
+    M̃ = Dict(p => M[p] + ΔM[p] for p in keys(M))
     return(V + ΔV, μ + Δμ, M̃)
 end
 

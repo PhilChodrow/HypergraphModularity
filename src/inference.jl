@@ -1,4 +1,4 @@
-function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums = false)
+function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums = true)
     ℓ = maximum(keys(H.E))  # size of largest hyperedge
     S = evalSums(Z,H,maximum(Z),true)[3]
     
@@ -30,7 +30,7 @@ function estimateΩEmpirically(H, Z; min_val=0.0, aggregator=identity, bigNums =
         end
     end
     
-    ω̂ = Dict(a => C_agg[a] / S_agg[a] for a in keys(C_agg))
+    ω̂ = Dict(a => abs(C_agg[a] / S_agg[a]) for a in keys(C_agg))
             
     return empiricalIntensityFunction((p, α) -> ω̂[p], ℓ, aggregator)
 end

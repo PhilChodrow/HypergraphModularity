@@ -8,6 +8,10 @@ using StatsBase
 using Combinatorics
 
 
+
+
+
+
 # just testing that these run correctly at the moment
 @testset "Ω" begin
 
@@ -43,6 +47,22 @@ H = sampleSBM(Z, ϑ, Ω;α=α, kmax=kmax, kmin = 1)
 @testset "HSBM Sampling" begin
     @test length(keys(H.E)) == kmax
 end
+
+# test for dyadic log likelihood
+# currently broken, need to fix. 
+@testset "dyadic likelihood" begin
+    ωᵢ = 1.0
+    ωₒ = 0.1
+    L₁ = dyadicLogLikelihood(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false) 
+    L₂ = HypergraphModularity.dyadicLogLikelihoodNaive(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false) 
+    @test L₁ ≈ L₂
+end
+
+
+
+
+
+
 
 @testset "cut" begin
     cut1 = first_term_eval(H, Z, Ω;α=α)
@@ -162,11 +182,22 @@ end
 @testset "modularity" begin
 
     Q_naive = HypergraphModularity.modularityNaive(H, Z, Ω;α=α)
-
     Q = modularity(H, Z, Ω;α=α)
-
     @test Q_naive ≈ Q
 end
+
+@testset "log likelihood" begin
+    Ω = estimateΩEmpirically(H, Z; aggregator = p -> [length(p) == 1, sum(p)], bigNums = true)
+    L = HypergraphModularity.logLikelihoodNaive(H, Z, Ω; α=α)
+    L̄ = logLikelihood(H, Z, Ω;α=α)
+    @test Float64(L) ≈ Float64(sum(L̄))
+end
+
+
+
+
+
+
 
 @testset "hyperlouvain" begin
     """

@@ -113,3 +113,37 @@ function mutualInformation(Z, Ẑ, normalized = false)
     
     return I
 end
+
+
+function subHypergraph(H, b)
+    """
+    b a boolean vector of the same length as H.N, indicating
+    which nodes should be included
+    VERY SLOW at the moment, could likely be improved. 
+    """
+    key = findall(x -> x == 1, b)
+    nodemap = Dict(zip(key, 1:length(key)))
+    
+    N_ = copy(H.N)
+    filter!(i -> i ∈ key, N_)
+    
+    N_ = [nodemap[i] for i in N_]
+    
+    E_ = copy(H.E)
+    for k in keys(E_)
+        filter!(e -> all(j in key for j in first(e)), E_[k])
+    end
+    
+    E__ = Dict(k => Dict() for k ∈ 2:maximum(keys(H.E)))
+    for k in keys(E__)
+        for e in keys(E_[k])
+            e_ = [nodemap[i] for i in e]
+            sort!(e_)
+            E__[k][e_] = get(E__[k],e_, 0) + 1
+        end
+    end
+    
+    H_ = hypergraph(N_, E__, [])
+    HypergraphModularity.computeDegrees!(H_)
+    return H_
+end
