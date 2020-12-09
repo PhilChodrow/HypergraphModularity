@@ -346,6 +346,19 @@ function evalCuts(Z::Array{Int64,1}, H::hypergraph)
     return C
 end
 
+function evalCuts(H::hypergraph, Z::Array{Int64,1}, Ω::IntensityFunction)
+
+    C = Dict(p => 0 for p in Ω.range)
+    for k in keys(H.E)
+        Ek = H.E[k]
+        for e in keys(Ek)
+            p = Ω.P(Z[e])
+            C[p] = get(C, p, 0) + Ek[e]
+        end
+    end
+    return C
+end
+
 function CutDiff_Many(C, I, t, Z, Hyp, w, node2edges,edge2part)
     """
     C: Dict{Vector{Int64}, Int64}, the dict of current cut values as would be produced by evalCuts().

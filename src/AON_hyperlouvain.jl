@@ -203,7 +203,7 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
     d::Vector{Float64},elen::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},
     kmax::Int64,randflag::Bool=false,maxits::Int64=100,verbose::Bool=true,
-    Zwarm::Vector{Int64}=Vector{Int64}())
+    Zwarm::Vector{Int64}=Vector{Int64}(),clusterpenalty = 0)
 
     """
     Supernode version of Hypergraph Louvain for planted partition model
@@ -222,12 +222,14 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
         * Zwarm = warm start clustering (optional)
         * randflag = whether or not to permute node order
         * maxits = Maximum # of greedy passes over the node set
+        * clusterpenalty = we include term clusterpenalty*log(k) in objective
+            so if clusterpenalty > 0, there is incentive to form fewer clusters
     """
 
     n = length(d)
     # Step 1: greedy moves until no more improvement
     Z, improved = ANHL_Step(node2edges,edge2nodes,w,d,elen, alp,bet,kmax,
-                            randflag,maxits,verbose,Zwarm)
+                            randflag,maxits,verbose,Zwarm,clusterpenalty)
 
     # Store all clusterins found
     if improved
@@ -251,7 +253,8 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
         dSuper = condense_d(d,Z_old)
         ########
         # Step 1: Go back to greedy local moves, this time on the reduced hypergraph
-        Zsuper, improved = ANHL_Step(n2e,e2n,wSuper,dSuper,elenSuper,alp,bet,kmax,randflag,maxits,verbose)
+        Zsuper, improved = ANHL_Step(n2e,e2n,wSuper,dSuper,elenSuper,alp,bet,
+                                kmax,randflag,maxits,verbose,Vector{Int64}(),clusterpenalty)
         N = length(Zsuper)    # N = number of supernodes = number clusters from last round
 
         @assert(minimum(Zsuper)>0)
@@ -293,11 +296,11 @@ Upgrades:
 function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
     w::Vector{Float64},d::Vector{Float64},elen::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},kmax::Int64,
-    randflag::Bool=false,maxits::Int64=100,verbose::Bool=true,Zwarm::Vector{Int64}=Vector{Int64}())
+    randflag::Bool=false,maxits::Int64=100,verbose::Bool=true,Zwarm::Vector{Int64}=Vector{Int64}(),clusterpenalty=0)
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
-    PC: I believe this assumes that there are no degenerate edges. 
+    PC: I believe this assumes that there are no degenerate edges.
     """
     if verbose println("One step of all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
@@ -340,12 +343,13 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
             push!(Clusters, Vector{Int64}())
             push!(Clusters[v],v)
         end
-        nextClus = n+1
-        push!(Clusters,Vector{Int64}())
+        # nextClus = n+1
+        # push!(Clusters,Vector{Int64}())
     end
 
-    # Extra information about neighborhood of each node
+    K = length(Clusters)    # keep track of the number of clusters
 
+    # Extra information about neighborhood of each node
     tic = time()
     # Store node neighbors of each node
     Neighbs = NeighborList(node2edges, edge2nodes)
@@ -389,6 +393,8 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
             # Get the indices of nodes in i's cluster
             Ci = Clusters[Ci_ind]
 
+            clus_size = length(Ci)
+
             # Get the indices of i's neighbors--these define clusters we might move to
             Ni = Neighbs[i]
             # Get the neighboring clusters of i:
@@ -407,8 +413,6 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
 
             # Set of hyperedges that node i is in, but don't include i itself
             Cv_list = edgelists[i]
-            
-
 
             # Volume of the set currently
             vS = sum(d[Ci])
@@ -440,7 +444,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         # cluster Ci to cluster Cj
                         e = Cv[eid]
                         edge_noi = Cv_list[eid]
-                        
+
                         k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
                         if k > 1
@@ -452,7 +456,13 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                     end
                     ctime += time()-tic
 
-                    change = Δcut + Δvol    # want this to be negative
+                    # Change in cluster part of objective
+                    if clus_size == 1
+                        Δclus = clusterpenalty*(log(K-1)-log(K))
+                    else
+                        Δclus = 0
+                    end
+                    change = Δcut + Δvol + Δclus # want this to be negative
 
                 end
 
@@ -481,9 +491,15 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                 changemade = true
                 improving = true # we have a reason to keep iterating!
 
+                if clus_size == 1
+                    # we moved a singleton to another cluster
+                    K -= 1
+                end
+
                 # if you moved it to its own singleton, open a new cluster
-                nextClus += 1
-                push!(Clusters,Vector{Int64}())
+                # not currently in use
+                # nextClus += 1
+                # push!(Clusters,Vector{Int64}())
             end
         end
     end
@@ -658,7 +674,6 @@ function condense_d(d::Vector{Float64},Z::Vector{Int64})
     end
     return dnew
 end
-
 
 
 function AON_Inputs(H,ω,α,kmax)
