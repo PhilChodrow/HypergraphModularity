@@ -39,7 +39,7 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     return A
 end
 
-function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=0)
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=10000)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.
@@ -61,7 +61,7 @@ function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool
 end
 
 
-function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,clusterpenalty=Float64=0.0,maxits::Int64=10000)
+function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=10000)
     """
     Vanilla modularity algorithm, obtained by calling the LambdaLouvain algorithm
     implementation from:
