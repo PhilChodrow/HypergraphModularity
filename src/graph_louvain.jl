@@ -124,7 +124,24 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
 end
 
 
-function dyadicModularity(H, Z, γ; weighted=true, binary=false)
+function dyadicModularity(H, Z, γ; weighted=false, binary=false)
+    """
+    Compute the normalized dyadic modularity a given partition in the graph obtained from projecting a hypergraph. 
+    The resolution parameter and basic properties of the dyadic graph projection can be specified. 
+
+    # Arguments
+    
+    - H::hypergraph, a hypergraph
+    - Z::Vector{Int4}, a label vector 
+    - γ::Float64, the resolution parameter. Must be strictly positive. 
+    - weighted::bool, whether to weight the clique obtained by projecting a hypergraph according to a factor of 1/(k-1), where k is the clique size. Choosing to do so preserves the degrees of nodes in the dyadic projection. If false and if binary is false, then each edge within the clique has weight 1. 
+    - binary::bool, whether to convert the graph to a binary graph in which present edges have weight 1 and absent edges have weight 0. If false and if weighted is false, then the weight of an edge between two nodes in the return value is equal to the number of hyperedges containing both of those nodes. 
+
+    # Returns
+
+    - Q::Float64, a normalized modularity score between -1 and 1. 
+
+    """
     G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
