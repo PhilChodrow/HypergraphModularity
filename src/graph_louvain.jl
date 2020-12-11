@@ -39,13 +39,13 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
     return A
 end
 
-function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false)
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=0)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.
     """
     A = CliqueExpansion(H,weighted,binary)
-    return VanillaModularity(A,gamma,randflag)
+    return VanillaModularity(A,gamma,randflag,clusterpenalty,maxits)
 end
 
 function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,maxits::Int64=100)
@@ -61,7 +61,7 @@ function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool
 end
 
 
-function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,maxits::Int64=10000)
+function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma::Float64=1.0,randflag::Bool=false,clusterpenalty=Float64=0.0,maxits::Int64=10000)
     """
     Vanilla modularity algorithm, obtained by calling the LambdaLouvain algorithm
     implementation from:
@@ -77,7 +77,7 @@ function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma:
     n = length(d)
     vol = sum(d)
     lam = gamma/vol
-    Cs = LambdaLouvain(A,d,lam,randflag,maxits)
+    Cs = LambdaLouvain(A,d,lam,randflag,maxits,clusterpenalty)
 
     c = Cs[:,end]
     @assert(length(c) == n)
@@ -175,7 +175,7 @@ end
 
 function dyadicLogLikelihoodDirect(H, Z, ωᵢ, ωₒ)
     """
-    A naive version of the dyadic log-likelihood calculation, used only for testing the fast one. 
+    A naive version of the dyadic log-likelihood calculation, used only for testing the fast one.
     """
     G = CliqueExpansion(H, false, false)
     d = vec(sum(G, dims=1))
@@ -296,7 +296,7 @@ associated with the modularity objective.
 w = weights function, w[i] = weight for node i. This is often the degree of node
     i, but doesn't have to be.
 """
-function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=10000)
+function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=10000,clusterpenalty::Float64=0.0)
 
     @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
@@ -304,7 +304,7 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
     # Step 1: greedy moves until no more improvement
     #########
     # We can replace this with a greedy moves function for hypergraph modularity
-    c, improved = LambdaLouvain_Step(A,w,lam,randflag,maxits)
+    c, improved = LambdaLouvain_Step(A,w,lam,randflag,maxits,clusterpenalty)
     #########
 
     # This code keeps track of the clustering that is found after each call to
@@ -329,7 +329,7 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
         ########
 
         # Step 1: Go back to greedy local moves, this time on the reduced graph
-        cSuper, improved = LambdaLouvain_Step(Anew,wnew,lam,randflag,maxits)
+        cSuper, improved = LambdaLouvain_Step(Anew,wnew,lam,randflag,maxits,clusterpenalty)
         N = length(wnew)    # N = number of supernodes = number clusters from last round
 
         # Undo the procedure that merged nodes into super nodes, so that you get a clustering vector of length n
@@ -385,7 +385,7 @@ end
 Run Step 1 of the Louvain algorithm: iterate through nodes and greedily move
 nodes to adjacent clusters.
 """
-function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf)
+function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf,clusterpenalty::Float64=0.0)
     # @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
     # println("Merging $n Communities")
@@ -404,6 +404,9 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
     @assert(size(w,1) == n)
     improving = true
     its = 0
+
+    # number of clusters
+    K = n
 
     # This stores the graph as an an adjacency list: it's super helpful
     # to be able to quickly get the set of neighbors for a given node
@@ -438,23 +441,25 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
             # Get the indices of nodes in i's cluster
             Ci = Clusters[Ci_ind]
 
+            clus_size = length(Ci)
+
             # Ni = findall(x->x>0, A[i,:]) # findall is slow!
             Ni = Neighbs[i]
 
             ## First few lines here essentially compute the current contribution
             # this node i has on the objective, based on its current cluster placement
 
-                # Weight of negative mistakes currently at i
-                neg_inner = w[i]*(sum(w[Ci]) - w[i])
+            # Weight of negative mistakes currently at i
+            neg_inner = w[i]*(sum(w[Ci]) - w[i])
 
-                # Weight of positive mistakes if we remove i from Ci
-                pos_inner = sum(A[i,Ci])
+            # Weight of positive mistakes if we remove i from Ci
+            pos_inner = sum(A[i,Ci])
 
-                # Increase in mistakes if we remove i from Ci
-                total_inner = pos_inner - lam*neg_inner
+            # Increase in mistakes if we remove i from Ci
+            total_inner = pos_inner - lam*neg_inner
 
-                BestImprove = 0
-                BestC = Ci_ind
+            BestImprove = 0
+            BestC = Ci_ind
 
 
             # Get the neighboring clusters of i:
@@ -467,9 +472,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
                 # Check how much it would improve to move i to to cluster j
                 if Cj_ind == Ci_ind
-
                     change = 0
-
                 else
 
                     # Cj = findall(x->x == Cj_ind,c)
@@ -487,8 +490,15 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
                     total_outer = lam*neg_outer - pos_outer
 
+                    # Change in cluster part of objective
+                    if clus_size == 1
+                        Δclus = clusterpenalty*(log(K-1)-log(K))
+                    else
+                        Δclus = 0
+                    end
+
                     # This is the overall change in objective if we move i to Cj
-                    change = total_outer + total_inner
+                    change = total_outer + total_inner + Δclus
 
                 end
 
@@ -514,6 +524,10 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
                 push!(Clusters[BestC],i)
 
                 improving = true # we have a reason to keep iterating!
+                if clus_size == 1
+                    # we moved a singleton to another cluster
+                    K -= 1
+                end
             end
 
         end
