@@ -16,11 +16,18 @@ end
 function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::IntensityFunction; α::Any)
     """
     Sample a Poisson number of edges on a sequence of nodes S according to the hypergraph SBM law.
-    S: an array of node indices
-    Z: an integer array of length n. Each integer is a group label.
-    Ω: a group interaction function, such as plantedPartition
-    Θ: a nonnegative float array of length n
-    C: combinatorial factor
+
+    # Arguments
+
+    S::Vector{Int64},  an array of node indices
+    Z::Vector{Int64}, an integer array of length n. Each integer is a group label.
+    Ω::IntensityFunction, an IntensityFunction governing interaction rates between nodes of different groups. 
+    ϑ::Vector{Float64},  a nonnegative float array of length n
+
+    # Returns
+
+    x::Int64, an integer number of edge counts sampled according to a Poisson random variable with specified formula. 
+
     """
     z = Z[S]
     θ = ϑ[S]
@@ -31,12 +38,24 @@ function sampleEdge(S::Vector{Int64}, Z::Vector{Int64}, ϑ::Vector{Float64}, Ω:
     return(rand(X))
 end
 
-function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::IntensityFunction; α::Any, kmax::Int64=3, kmin::Int64=2)
+function sampleEdges(Z::Vector{Int64}, ϑ::Vector{Float64}, Ω::IntensityFunction; α::Vector{Float64}, kmax::Int64=3, kmin::Int64=2)
     """
-    run sampleEdge() for each possible distinct sequence of no more than k_max node labels, allowing repeats, and concatenate the results as a single array (edge list)
-    The arrays Z and ϑ are required to be of the same length n.
-    Returns a Dict, keyed by edgesize.
-    Each value in this dict is itself a dict of edges, with counts, of the specified size.
+
+    Sample edges of specified sizes according to the degree-corrected hypergraph configuration model (DCHSBM). Runs sampleEdge() for each possible distinct sequence of nodes of size between kmin and kmax, inclusive. 
+
+    # Arguments
+
+    Z::Vector{Int64}, a vector of group labels
+    ϑ::Vector{Float64}, a vector of degree parameters
+    Ω::IntensityFunction, an intensity function governing the rate of interaction between nodes of various groups.
+    α::Vector{Float64}, a parameter passed to Ω
+    kmax::Int64, the size of the largest hyperedge to form
+    kmin::Int64, the size of the smallest hyperedge to form
+
+    # Returns
+
+    E::Dict{Int64,Dict{Vector{Int64}, Int64}}, a dictionary keyed by edge sizes. E[k] is itself a dictionary whose keys are ordered sets of nodes and whose values are the number of edges on those node sets. 
+    N::Vector{Int64}, the list of nodes. 
     """
     E = Dict{Int64, Dict}() # initialize empty edge list
     n = length(Z)           # number of nodes inferred from group labels
@@ -97,6 +116,14 @@ end
 function sampleSBM(args...;kwargs...)
     """
     Sample a hypergraph with specified parameters and return it with its degree sequence pre-computed. This is the primary user-facing function for sampling tasks.
+
+    # Arguments
+
+    args and kwargs: See documentation for sampleEdges()
+
+    # Returns
+
+    H::hypergraph, a hypergraph sampled according to the DCHSBM with specified args and kwargs. 
     """
     E, N = sampleEdges(args...;kwargs...)
     H = hypergraph(E = E, N = N)

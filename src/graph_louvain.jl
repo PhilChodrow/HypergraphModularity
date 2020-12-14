@@ -85,7 +85,7 @@ function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma:
     return c
 end
 
-function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false)
+function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false, pseudocount = 0.0)
     """
     compute the dyadic resolution parameter associated to a partition using the formula from Newman (2016): https://arxiv.org/abs/1606.02319
     """
@@ -99,8 +99,8 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     # form degree sequence and edge counts
     D = vec(sum(G, dims=1))
 
-    m_in = 0
-    m_out = 0
+    m_in = pseudocount
+    m_out = pseudocount
 
     for k in 1:length(I)
         if Z[I[k]] == Z[J[k]]
@@ -113,7 +113,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     # compute resolution parameter
     V = [sum(D[Z .== c]) for c in unique(Z)]
     ωᵢ = 4*m*m_in / (sum(V.^2))
-    ωₒ = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
+    ωₒ = (2m_out)/(2m - (sum(V.^2)/(2m)))
 
     if mode == "γ"
         γ = (ωᵢ - ωₒ)/(log(ωᵢ) - log(ωₒ))
