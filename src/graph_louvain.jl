@@ -40,6 +40,10 @@ function CliqueExpansion(H::hypergraph,weighted::Bool=true,binary::Bool=false)
 end
 
 function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=10000)
+    return CliqueExpansionModularity(H,gamma;weighted=weighted,randflag=randflag,binary=binary,clusterpenalty=clusterpenalty,maxits=maxits)
+end
+
+function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0;weighted::Bool=true,randflag::Bool=false,binary::Bool=false,clusterpenalty::Float64=0.0,maxits::Int64=10000)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.
@@ -48,7 +52,7 @@ function CliqueExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bo
     return VanillaModularity(A,gamma,randflag,clusterpenalty,maxits)
 end
 
-function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0,weighted::Bool=true,randflag::Bool=false,binary::Bool=false,maxits::Int64=100)
+function StarExpansionModularity(H::hypergraph,gamma::Float64=1.0;weighted::Bool=true,randflag::Bool=false,binary::Bool=false,maxits::Int64=100)
     """
     Perform a clique expansion on the hypergraph H and then run vanilla
     modularity on the resulting graph.

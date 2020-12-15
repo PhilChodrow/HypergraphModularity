@@ -1,15 +1,4 @@
-# This is new code for all-or-nothing hypergraph louvain
-# At this point, it may deviate significantly from the omega-refactored
-# previous code. The idea is to figure out how fast we have a hope
-# of making it.
-
-# include("hyperlouvain_helpers.jl")
-# include("hyper_format.jl")
-# include("AON_helpers.jl")
-# include("HSBM.jl")
-
-
-function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
+function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="random",Z0 = collect(1:length(H.D)))
     randflag = !(scan_order == "lexical")
     cut_weights, vol_weights, e2n, n2e,w,d,elen = AON_Inputs(H,Ω.ω,α,kmax)
     Zset = SuperNode_PPLouvain(n2e,e2n,w,d,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Z0);
@@ -17,186 +6,10 @@ function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = m
     return Z
 end
 
-
-function AN_HyperLouvain0(H::hypergraph,node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
-    w::Vector{Float64},d::Vector{Int64},
-    alp::Vector{Float64},bet::Vector{Float64},kmax::Int64,Ω; α)
-    """
-    Basic step Louvain algorithm: iterate through nodes and greedily move
-    nodes to adjacent clusters. Does not form supernodes and does not recurse.
-
-    H: hypergraph incidence matrix, Ht is the transpose
-    w: weight of each hyperedge
-    return: Z::array{Int64, 1}: array of group labels.
-    """
-    maxits = 100
-
-    # He2n, w = hypergraph2incidence(H)
-    # Hn2e = SparseArrays.sparse(He2n')
-    if verbose println("Running new all-or-nothing HyperLouvain") end
-    m = length(edge2nodes)
-    n = length(node2edges)
-
-    ctime = 0
-    vtime = 0
-    if verbose println("") end
-    # println("Took $convert seconds to convert to different hypergraph formats")
-
-    # Store node neighbors of each node
-    Neighbs = NeighborList(node2edges, edge2nodes)
-
-    # All nodes start in singleton clusters
-    Z = collect(1:n)
-
-    # Also store as cluster list
-    Clusters = Vector{Vector{Int64}}()
-    for v = 1:n
-        push!(Clusters, Vector{Int64}())
-        push!(Clusters[v],v)
-    end
-
-    elen = zeros(Int64,m)
-    for e = 1:m
-        elen[e] = length(edge2nodes[e])
-    end
-
-    tic = time()
-    edgelists = Vector{Vector{Vector{Int64}}}()
-    for i = 1:n
-        iedges = Vector{Vector{Int64}}()    # each node has a list of hyperedges it's in, i.e. a list of lists of nodes.
-        for e in node2edges[i]
-            edge = edge2nodes[e]
-            push!(iedges, setdiff(edge,i))  # don't save i itself
-        end
-        push!(edgelists,iedges)
-    end
-    etime = time()-tic
-
-    improving = true
-    iter = 0
-    changemade = false
-
-    # Initialize vols and cuts to track efficient local changes
-    r = kmax
-
-    toler = 1e-8
-    mainstart = time()
-    while improving && iter < maxits
-
-        # Q = round.(modularity(H, Z, Ω; α = α),digits = 5)
-        iter += 1
-        if mod(iter,1) == 0
-            # if verbose println("Louvain Iteration $iter: $Q") end
-            if verbose println("Louvain Iteration $iter") end
-        end
-        improving = false
-
-        # visit each node in turn
-        for i = 1:n
-
-            # println("NODE $i")
-
-            # Cluster index for node i
-            Ci_ind = Z[i]
-
-            # Get the indices of nodes in i's cluster
-            Ci = Clusters[Ci_ind]
-
-            # Get the indices of i's neighbors--these define clusters we might move to
-            Ni = Neighbs[i]
-            # Get the neighboring clusters of i:
-            # there are the only places we would even consider moving node i to
-            NC = unique(Z[Ni])
-
-            # The default is to not move the cluster
-            BestC = Z[i]
-            BestImprove = 0
-
-            # Set of edges that i is in
-            Cv = node2edges[i]
-
-            # Set of hyperedges that node i is in, but don't include i itself
-            Cv_list = edgelists[i]
-
-            # Volume of the set currently
-            vS = sum(d[Ci])
-            dv = d[i]
-
-            for j = 1:length(NC)
-                Cj_ind = NC[j]
-
-                # Check how much it would improve to move i to to cluster j
-                if Cj_ind == Ci_ind
-                    change = 0
-                else
-
-                    # Change in volume
-                    tic = time()
-                    Cj = Clusters[Cj_ind]       # The cluster
-                    vJ = sum(d[Cj])
-                    Δvol = 0
-                    for k = 2:kmax
-                        Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)  # Better if this is smaller
-                    end
-                    vtime += time()-tic
-
-                    # Change in cut
-                    tic = time()
-                    Δcut = 0
-                    for eid = 1:length(Cv)
-                        # change in cut for edge e when v moves from
-                        # cluster Ci to cluster Cj
-                        e = Cv[eid]
-                        edge_noi = Cv_list[eid]
-                        k = elen[e]      # size of the edge
-                        we = alp[k]*w[e]
-                        mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
-                        Δcut += mc
-                    end
-                    ctime += time()-tic
-
-                    change = Δcut + Δvol    # want this to be negative
-
-                end
-
-                # Check if this is currently the best possible greedy move to make
-                # The tolerance helps with making some behavior more stable:
-                #   you only move if there's a numerically nonzero reason to move.
-                if  change < BestImprove - toler
-                    BestImprove = change
-                    BestC = Cj_ind
-                    improving = true
-                end
-            end
-
-            # Move i to the best new cluster, only if it strictly improves modularity
-            if BestImprove < -toler
-
-                # update clustering
-                ci_old = Z[i]
-                Z[i] = BestC
-
-                # Remove i from its old cluster...
-                Clusters[ci_old] = setdiff(Clusters[ci_old],i)
-
-                # ...and add it to its new cluster
-                push!(Clusters[BestC],i)
-                changemade = true
-                improving = true # we have a reason to keep iterating!
-            end
-        end
-    end
-    mainloop = time()-mainstart
-    if ~changemade
-        println("No nodes moved clusters")
-    end
-    @show vtime, ctime, etime
-    @show mainloop
-    Z, Clusters = renumber(Z,Clusters)
+function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
+    Z = SuperNode_PPLouvain(H,Ω;α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order,Z0 = Z0)
     return Z
-
 end
-
 
 function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
     edge2nodes::Vector{Vector{Int64}},w::Vector{Float64},
@@ -286,13 +99,7 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
     return Zs
 end
 
-"""
-Generalized version of ANHL hypergraph louvain
-Upgrades:
-    * has weight for size of hyperedge rather than computing the weights
-    * allows you to warm start with a clustering
-    * allows you to randomize node order
-"""
+
 function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{Int64}},
     w::Vector{Float64},d::Vector{Float64},elen::Vector{Int64},
     alp::Vector{Float64},bet::Vector{Float64},kmax::Int64,
@@ -300,7 +107,14 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     """
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
+
     PC: I believe this assumes that there are no degenerate edges.
+    NV: Actually should work fine even with degenerate edges.
+
+    Features:
+    * has weight for size of hyperedge rather than computing the weights
+    * allows you to warm start with a clustering
+    * allows you to randomize node order
     """
     if verbose println("One step of all-or-nothing HyperLouvain") end
     m = length(edge2nodes)
