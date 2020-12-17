@@ -1,13 +1,13 @@
-function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="random",Z0 = collect(1:length(H.D)))
+function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction;α,clusterpenalty=0,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="random",Z0 = collect(1:length(H.D)))
     randflag = !(scan_order == "lexical")
     cut_weights, vol_weights, e2n, n2e,w,d,elen = AON_Inputs(H,Ω.ω,α,kmax)
-    Zset = SuperNode_PPLouvain(n2e,e2n,w,d,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Z0);
+    Zset = SuperNode_PPLouvain(n2e,e2n,w,d,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Z0,clusterpenalty);
     Z = Zset[:,end];
     return Z
 end
 
 function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
-    Z = SuperNode_PPLouvain(H,Ω;α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order,Z0 = Z0)
+    Z = SuperNode_PPLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order,Z0 = Z0)
     return Z
 end
 
@@ -41,10 +41,10 @@ function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
 
     n = length(d)
     # Step 1: greedy moves until no more improvement
-    Z, improved = ANHL_Step(node2edges,edge2nodes,w,d,elen, alp,bet,kmax,
+    Z, improved = ANHL_Step(node2edges,edge2nodes,w,d,elen,alp,bet,kmax,
                             randflag,maxits,verbose,Zwarm,clusterpenalty)
 
-    # Store all clusterins found
+    # Store all clusterings found
     if improved
         Zs = Z
         Z_old = copy(Z)
@@ -108,8 +108,7 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     Basic step Louvain algorithm: iterate through nodes and greedily move
     nodes to adjacent clusters. Does not form supernodes and does not recurse.
 
-    PC: I believe this assumes that there are no degenerate edges.
-    NV: Actually should work fine even with degenerate edges.
+    NV: Should work also for degenerate hyperedges, though some bugs are possible
 
     Features:
     * has weight for size of hyperedge rather than computing the weights
@@ -258,10 +257,11 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                         # cluster Ci to cluster Cj
                         e = Cv[eid]
                         edge_noi = Cv_list[eid]
-
+                        # @show edge_noi
                         k = elen[e]      # size of the edge
                         we = alp[k]*w[e]
-                        if k > 1
+                        #if k > 1
+                        if length(edge_noi) > 0 #if k > 1
                             mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
                         else
                             mc = 0
@@ -338,8 +338,8 @@ function move_cut(v::Int64,Z::Vector{Int64},erest::Vector{Int64},Ci_ind::Int64,
     Cj_ind::Int64,we::Float64)
 
     # p = Z[erest]            # set of clusters in e, not counting e
-
-    p1 = Z[erest[1]]
+    first = erest[1]
+    p1 = Z[first]
     na = notsame(erest,Z,p1)
 
 
@@ -520,6 +520,32 @@ function AON_Inputs(H,ω,α,kmax)
 end
 
 
+
+function Elist_to_Hypergraph(elist::Vector{Vector{Int64}}, maxsize::Int64=25)
+    """
+    Converts a binary hypergraph incidence matrix to type "hypergraph".
+    Assumes edges are properly sorted already
+    """
+    E = Dict{Integer, Dict}()
+    for edge in elist
+        # sort!(edge)
+        if length(edge) > maxsize; continue; end
+        sz = length(edge)
+        if !haskey(E, sz)
+            E[sz] = Dict{}()
+        end
+        E[sz][edge] = 1
+    end
+
+    D = zeros(Int64, n)
+    for (sz, edges) in E
+        for (e, _) in edges
+            D[e] .+= 1
+        end
+    end
+    N = 1:n
+    return hypergraph(N, E, D)
+end
 
 function Hmat_to_Hypergraph(H::SparseArrays.SparseMatrixCSC, maxsize::Int64=25)
     """
