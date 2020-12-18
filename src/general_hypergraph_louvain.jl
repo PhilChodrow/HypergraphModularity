@@ -1,5 +1,5 @@
 function HyperLouvain(H::hypergraph,kmax::Int64,Ω::IntensityFunction,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
-    HyperLouvain(H,Ω;α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order)
+    HyperLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order)
 end
 
 function HyperLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="lexical")
@@ -307,7 +307,7 @@ function SuperNodeStep(H::hypergraph,Z::Vector{Int64},kmax::Int64,Ω,maxits::Int
 end
 
 function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="lexical")
-    SuperNodeLouvain(H,Ω;α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order)
+    SuperNodeLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order)
 end
 
 function SuperNodeLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="lexical")
