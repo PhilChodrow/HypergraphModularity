@@ -99,6 +99,7 @@ end
 
 function SampleEdge(pvals,n,rmin,rmax,cluster_prefs,r_sizes,Clusters)
     replace = false
+    K = length(Clusters)
     r = sample(rmin:rmax,r_sizes)       # select a hyperedge size
     if rand(1)[1] < pvals[r-rmin+1]
 
