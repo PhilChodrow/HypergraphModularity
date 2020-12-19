@@ -465,6 +465,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
             BestImprove = 0
             BestC = Ci_ind
 
+            Ai = A[:,i]
 
             # Get the neighboring clusters of i:
             # there are the only places we would even consider moving node i to
@@ -489,8 +490,10 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
                     neg_outer = w[i]*(sum(w[Cj]))
 
                     # Moving i from Ci to Cj decreases positive mistakes
-                    # pos_outer = sum(A[i,cj_neighbs])
-                    pos_outer = sum(A[i,Cj])
+
+                    pos_outer = mysum(Ai,Cj)
+                    #pos_outer = sum(Ai[Cj])
+                    # pos_outer2 = sum(A[i,Cj])
 
                     total_outer = lam*neg_outer - pos_outer
 
@@ -526,6 +529,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
                 # ...and add it to its new cluster
                 push!(Clusters[BestC],i)
+                sort!(Clusters[BestC])
 
                 improving = true # we have a reason to keep iterating!
                 if clus_size == 1
@@ -549,6 +553,18 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
     return c, improved
 
+end
+
+function mysum(v::SparseVector{Float64,Int64},inds::Vector{Int64})
+    """
+    Less numerically stable, but for the purposes of a greedy clustering
+    algorithm works as well as it needs to, and is faster.
+    """
+    s = 0
+    for i in inds
+        s += v[i]
+    end
+    return s
 end
 
 """

@@ -124,46 +124,37 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
         node_order = Random.randperm(n)
         # NOTE: may be faster to re-arrange
         #   all the data structures so that we march through
-        #   Z in order. Hard to say.
+        #   Z in order.
     else
         node_order = 1:n
     end
 
-    ctime = 0
-    vtime = 0
     if verbose println("") end
 
     # Warm start clustering
     if length(Zwarm) > 0
         Z = renumber(Zwarm)
-        Clusters = Vector{Vector{Int64}}()
-        N = maximum(Z)
-        for c = 1:N
-            push!(Clusters,Vector{Int64}())
-        end
-        for v = 1:n
-            push!(Clusters[Z[v]],v)
-        end
-        nextClus = N+1
-        push!(Clusters,Vector{Int64}())
     else
         # Default is to put all nodes in their own cluster
         Z = collect(1:n)
-
-        # Also store as cluster list
-        Clusters = Vector{Vector{Int64}}()
-        for v = 1:n
-            push!(Clusters, Vector{Int64}())
-            push!(Clusters[v],v)
-        end
-        # nextClus = n+1
-        # push!(Clusters,Vector{Int64}())
     end
 
-    K = length(Clusters)    # keep track of the number of clusters
 
-    # Extra information about neighborhood of each node
-    tic = time()
+	K = maximum(Z)   			# number of clusters
+    ClusVol = zeros(K)			# volume of clusters
+	ClusSize = zeros(K)			# size of each cluster
+	for i = 1:n
+		ClusVol[Z[i]] += d[i]
+		ClusSize[Z[i]] += 1
+	end
+
+    # Store cut penalties for each edge
+    cutpenalty = zeros(m)
+    for e = 1:m
+        k = elen[e]      				# size of the edge
+        cutpenalty[e] = alp[k]*w[e] 	# penalty for cutting it
+    end
+
     # Store node neighbors of each node
     Neighbs = NeighborList(node2edges, edge2nodes)
 
@@ -178,7 +169,6 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
         end
         push!(edgelists,iedges)
     end
-    etime = time()-tic
 
     improving = true
     iter = 0
@@ -186,8 +176,8 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
 
     # Initialize vols and cuts to track efficient local changes
     r = kmax
-
     toler = 1e-8
+
     mainstart = time()
     while improving && iter < maxits
 
@@ -203,87 +193,71 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
             # Cluster index for node i
             Ci_ind = Z[i]
 
-            # Get the indices of nodes in i's cluster
-            Ci = Clusters[Ci_ind]
-
-            clus_size = length(Ci)
+            # Get the size of the cluster
+			clus_size = ClusSize[Ci_ind]
 
             # Get the indices of i's neighbors--these define clusters we might move to
             Ni = Neighbs[i]
-            # Get the neighboring clusters of i:
-            # there are the only places we would even consider moving node i to
+
+            # Get the neighboring clusters of i
             NC = unique(Z[Ni])
 
-            # Also consider what happens if you move it to its own cluster
-            # push!(NC,nextClus)
-
-            # The default is to not move the cluster
+            # The default is to not move the node
             BestC = Z[i]
             BestImprove = 0
 
             # Set of edges that i is in
             Cv = node2edges[i]
 
-            # Set of hyperedges that node i is in, but don't include i itself
+            # Set of hyperedges that node i is in, not including i itself
             Cv_list = edgelists[i]
 
             # Volume of the set currently
-            vS = sum(d[Ci])
+            vS = ClusVol[Ci_ind]
             dv = d[i]
 
             for j = 1:length(NC)
+
+				# Check how much it would improve to move i to to cluster j
                 Cj_ind = NC[j]
 
-                # Check how much it would improve to move i to to cluster j
                 if Cj_ind == Ci_ind
-                    change = 0
-                else
-
-                    # Change in volume
-                    tic = time()
-                    Cj = Clusters[Cj_ind]       # The cluster
-                    vJ = sum(d[Cj])
-                    Δvol = 0
-                    for k = 1:kmax
-                        Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)  # Better if this is smaller
-                    end
-                    vtime += time()-tic
-
-                    # Change in cut
-                    tic = time()
-                    Δcut = 0
-                    for eid = 1:length(Cv)
-                        # change in cut for edge e when v moves from
-                        # cluster Ci to cluster Cj
-                        e = Cv[eid]
-                        edge_noi = Cv_list[eid]
-                        # @show edge_noi
-                        k = elen[e]      # size of the edge
-                        we = alp[k]*w[e]
-                        #if k > 1
-                        if length(edge_noi) > 0 #if k > 1
-                            mc = move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
-                        else
-                            mc = 0
-                        end
-                        Δcut += mc
-                    end
-                    ctime += time()-tic
-
-                    # Change in cluster part of objective
-                    if clus_size == 1
-                        Δclus = clusterpenalty*(log(K-1)-log(K))
-                    else
-                        Δclus = 0
-                    end
-                    change = Δcut + Δvol + Δclus # want this to be negative
-
+                    continue
                 end
+
+                # Change in volume
+                vJ = ClusVol[Cj_ind]
+                Δvol = 0
+                for k = 1:kmax
+					# Better if this is smaller
+                    Δvol += bet[k]*((vS-dv)^k + (vJ+dv)^k - vS^k - vJ^k)
+                end
+
+                # Change in cut
+                Δcut = 0
+                for eid = 1:length(Cv)
+                    # change in cut for edge e when v moves from
+                    # cluster Ci to cluster Cj
+                    e = Cv[eid]
+                    edge_noi = Cv_list[eid]
+
+                    if elen[e] > 1
+						we = cutpenalty[e]
+                        Δcut += move_cut(i,Z,edge_noi,Ci_ind,Cj_ind,we)
+                    end
+                end
+
+                # Change in objective due to change in cluster number
+                Δclus = 0
+                if clusterpenalty > 0 && clus_size == 1
+                    Δclus = clusterpenalty*(log(K-1)-log(K))
+                end
+                change = Δcut + Δvol + Δclus # want this to be negative
 
                 # Check if this is currently the best possible greedy move to make
                 # The tolerance helps with making some behavior more stable:
                 #   you only move if there's a numerically nonzero reason to move.
-                if  change < BestImprove - toler
+                if change < BestImprove - toler
                     BestImprove = change
                     BestC = Cj_ind
                     improving = true
@@ -298,10 +272,12 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                 Z[i] = BestC
 
                 # Remove i from its old cluster...
-                Clusters[ci_old] = setdiff(Clusters[ci_old],i)
+                ClusVol[ci_old] -= dv
+				ClusSize[ci_old] -= 1
 
                 # ...and add it to its new cluster
-                push!(Clusters[BestC],i)
+                ClusVol[BestC] += dv
+				ClusSize[BestC] += 1
                 changemade = true
                 improving = true # we have a reason to keep iterating!
 
@@ -310,10 +286,6 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
                     K -= 1
                 end
 
-                # if you moved it to its own singleton, open a new cluster
-                # not currently in use
-                # nextClus += 1
-                # push!(Clusters,Vector{Int64}())
             end
         end
     end
@@ -324,9 +296,8 @@ function ANHL_Step(node2edges::Vector{Vector{Int64}},edge2nodes::Vector{Vector{I
     else
         improved = true
     end
-    # @show vtime, ctime, etime
     if verbose println("Main loop took $mainloop seconds") end
-    Z, Clusters = renumber(Z,Clusters)
+	Z = renumber(Z)
     return Z, improved
 
 end
@@ -338,8 +309,7 @@ function move_cut(v::Int64,Z::Vector{Int64},erest::Vector{Int64},Ci_ind::Int64,
     Cj_ind::Int64,we::Float64)
 
     # p = Z[erest]            # set of clusters in e, not counting e
-    first = erest[1]
-    p1 = Z[first]
+    p1 = Z[erest[1]]
     na = notsame(erest,Z,p1)
 
 
