@@ -555,7 +555,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
 end
 
-function mysum(v::SparseVector{Float64,Int64},inds::Vector{Int64})
+function mysum(v::SparseArrays.SparseVector{Float64,Int64},inds::Vector{Int64})
     """
     Less numerically stable, but for the purposes of a greedy clustering
     algorithm works as well as it needs to, and is faster.
