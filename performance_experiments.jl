@@ -11,26 +11,29 @@ include("src/AON_hyperlouvain.jl")
 include("src/synthetic_hypergraphs.jl")
 
 ## Run experiment
-K = 20
-kmin = 2
-kmax = 5
-pvals = [.5,.1, .1, 0.1]
-davg = 20
-v = range(3,stop=4.5,length=5)
-Nvals = round.(Int64,[10^i for i in v])
-s = 1
 
-function run_performance_exp(K,kmin,kmax,pvals,davg,Nvals,s)
+kmin = 2
+kmax = 4
+pvals = [.5,.1, .1]
+davg = 20
+v = range(3,stop=6,length=10)
+Nvals = round.(Int64,[10^i for i in v])
+s = 3
+clustersize = 500
+Kvals = round.(Int64,Nvals./clustersize)
+tag = "_500_node_clusters"
+
+function run_performance_exp(Kvals,kmin,kmax,pvals,davg,Nvals,s,tag="")
 
     # Louvain parameters
     maxits = 100
     randflag = false
     verbose = false
     clusterpenalty = 0
-    cluster_sizes=ones(K)
+
     r_sizes= collect(kmin:kmax)
     r_sizes = ones(kmax-kmin+1) # hyperedges of different sizes, equally likely
-    cluster_prefs=ones(K)
+
     N = maximum(Nvals)
 
     aris = zeros(length(Nvals),s)
@@ -55,6 +58,7 @@ function run_performance_exp(K,kmin,kmax,pvals,davg,Nvals,s)
     print(rpad("#Clusters", 15))
     println(rpad("Runtime", 15))
     println(rpad("",  80, "-"))
+    Kmax = maximum(Kvals)
 
     for ni = 1:length(Nvals)
         if ni == 1
@@ -64,7 +68,9 @@ function run_performance_exp(K,kmin,kmax,pvals,davg,Nvals,s)
         n = round(Int64,Nvals[ni])
         m = davg*n
         edgeweights = ones(m)
-
+        K = Kvals[ni]
+        cluster_sizes=ones(K)
+        cluster_prefs=ones(K)
 
         # Take one training sample and learn cut parameters for it
         He2n, e2n, elen, deg, ground_truth = GenerateHypergraphAll(n,m,K,pvals,kmin,kmax,cluster_sizes,r_sizes,cluster_prefs)
@@ -155,8 +161,8 @@ function run_performance_exp(K,kmin,kmax,pvals,davg,Nvals,s)
         println(rpad("",  80, "-"))
     end
 
-    matwrite("Output/N_$(N)_K_($K)_kmax_($kmax)_davg_($davg)_s_($s).mat",
-    Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,
+    matwrite("Output/N_$(N)_Kmax_($Kmax)_kmax_($kmax)_davg_($davg)_s_($s)*$tag.mat",
+    Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,
     "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
     "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine))
 
