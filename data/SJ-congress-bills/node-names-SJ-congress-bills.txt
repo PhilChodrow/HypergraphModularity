@@ -1,0 +1,294 @@
+COOK
+HUMPHREY
+MCGOVERN
+SCHWEIKER
+WILLIAMS
+ALLEN
+BEALL
+BENNETT
+BIBLE
+BUCKLEY
+CANNON
+CHILES
+CURTIS
+DOMINICK
+FANNIN
+GURNEY
+HANSEN
+HELMS
+HOLLINGS
+HRUSKA
+MCCLELLAN
+MCINTYRE
+STEVENS
+THURMOND
+TOWER
+ROTH
+HATHAWAY
+HUGHES
+BAKER
+BROCK
+CLARK
+FULBRIGHT
+MONDALE
+NELSON
+STEVENSON
+SYMINGTON
+MANSFIELD
+KENNEDY
+HART
+CHURCH
+AIKEN
+BARTLETT
+BAYH
+BROOKE
+BURDICK
+BYRD (VA.)
+Byrd, Robert C. [WV]
+CRANSTON
+DOLE
+DOMENICI
+EASTLAND
+GOLDWATER
+GRAVEL
+HASKELL
+HUDDLESTON
+INOUYE
+JACKSON
+JAVITS
+MAGNUSON
+MATHIAS
+MOSS
+MUSKIE
+NUNN
+PACKWOOD
+PASTORE
+PELL
+PERCY
+RANDOLPH
+SCOTT (VA.)
+TALMADGE
+TUNNEY
+YOUNG
+SCOTT (PA.)
+GRIFFIN
+ABOUREZK
+BENTSEN
+TAFT
+HARTKE
+MONTOYA
+STAFFORD
+HATFIELD
+BIDEN
+ERVIN
+SPARKMAN
+MCCLURE
+CASE
+WEICKER
+EAGLETON
+MCGEE
+STENNIS
+PROXMIRE
+METCALF
+JOHNSTON
+RIBICOFF
+FONG
+COTTON
+LONG
+METZENBAUM
+PEARSON
+BELLMON
+SAXBE
+FORD
+GLENN
+HART (COLO.)
+GARN
+BUMPERS
+LAXALT
+CULVER
+STONE
+LEAHY
+MORGAN
+DURKIN
+ANDERSON
+CHAFEE
+DANFORTH
+DECONCINI
+MATSUNAGA
+RIEGLE
+ZORINSKY
+HODGES
+MELCHER
+SARBANES
+SCHMITT
+WALLOP
+HATCH
+HAYAKAWA
+HEINZ
+LUGAR
+MOYNIHAN
+HATFIELD (MONT.)
+HUMPHREY (MURIEL)
+SASSER
+DURENBERGER
+LEVIN
+PRYOR
+TSONGAS
+BAUCUS
+COCHRAN
+WARNER
+SIMPSON
+JEPSEN
+ARMSTRONG
+BOSCHWITZ
+BRADLEY
+HUMPHREY
+STEWART
+HEFLIN
+BOREN
+COHEN
+EXON
+KASSEBAUM
+PRESSLER
+MITCHELL
+DIXON
+GORTON
+QUAYLE
+D'AMATO
+NICKLES
+DENTON
+EAST
+MURKOWSKI
+ANDREWS (N. D.)
+ABDNOR
+GRASSLEY
+KASTEN
+SYMMS
+DODD
+HAWKINS
+MATTINGLY
+SPECTER
+RUDMAN
+BRADY
+BINGAMAN
+LAUTENBERG
+WILSON
+TRIBLE
+HECHT
+EVANS
+HARKIN
+KERRY
+SIMON
+ROCKEFELLER
+GORE
+GRAMM
+MCCONNELL
+BROYHILL (N. C.)
+ADAMS
+CONRAD
+DASCHLE
+FOWLER
+GRAHAM
+MIKULSKI
+WIRTH
+MCCAIN
+BREAUX
+KARNES
+REID
+BOND
+SANFORD
+SHELBY
+JEFFORDS
+Kerrey, J. Robert [NE]
+Kohl, Herb [WI]
+Lieberman, Joseph I. [CT]
+Robb, Charles S. [VA]
+COATS
+MACK
+Burns, Conrad R. [MT]
+Bryan, Richard H. [NV]
+LOTT
+AKAKA
+Burdick, Quentin N. [ND]
+Wellstone, Paul D. [MN]
+Seymour, John [CA]
+BROWN, H.
+CRAIG
+SMITH, R.C.
+Wofford, Harris [PA]
+CAMPBELL
+DORGAN
+Kempthorne, Dirk [ID]
+Moseley-Braun, Carol [IL]
+Hutchison, Kay Bailey [TX]
+Mathews, Harlan [TN]
+Feinstein, Dianne [CA]
+BOXER
+Murray, Patty [WA]
+Feingold, Russell D. [WI]
+Faircloth, Lauch [NC]
+Coverdell, Paul [GA]
+GREGG
+Bennett, Robert F. [UT]
+KRUEGER
+Ashcroft, John [MO]
+DEWINE
+Frist, Bill [TN]
+Grams, Rod [MN-6]
+INHOFE
+KYL
+Santorum, Rick [PA-18]
+Shelby, Richard C. [AL]
+SNOWE
+Thomas, Craig [WY]
+Thompson, Fred [TN]
+Abraham, Spencer [MI]
+Frahm, Sheila [KS]
+WYDEN
+Allard, A. Wayne [CO-4]
+Brownback, Sam [KS-2]
+Campbell, Ben Nighthorse [CO]
+Collins, Susan M. [ME]
+Enzi, Michael B. [WY]
+Hagel, Chuck [NE]
+Hutchinson, Tim [AR-3]
+ROBERTS, P.
+Sessions, Jeff [AL]
+Smith, Gordon [OR]
+Cleland, Max [GA]
+Reed, John F. [RI-2]
+JOHNSON, T.
+Landrieu, Mary [LA]
+DURBIN
+TORRICELLI
+Crapo, Michael D. [ID-2]
+BUNNING
+Fitzgerald, Peter [IL]
+Lambert, Blanche M. [AR-1]
+Miller, Zell [GA]
+Voinovich, George V. [OH]
+Bayh, Evan [IN]
+Edwards, John [NC]
+Schumer, Charles E. [NY-9]
+Chafee, Lincoln D. [RI]
+Cantwell, Maria [WA-1]
+Clinton, Hillary Rodham [NY]
+Corzine, Jon [NJ]
+Dayton, Mark [MN]
+Stabenow, Debbie [MI-8]
+Allen, George [VA-7]
+Nelson, E. Benjamin [NE]
+Carnahan, Jean [MO]
+Ensign, John E. [NV-1]
+NELSON
+Chambliss, Saxby [GA-8]
+Cornyn, John [TX]
+Graham, Lindsey O. [SC-3]
+Jeffords, James M. [VT]
+Pryor, Mark Lunsford [AR]
+Coleman, Norm [MN]
+Sununu, John E. [NH-1]
+Dole, Elizabeth H. [NC]
+Murkowski, Lisa [AK]
+Talent, Jim [MO-2]
+Alexander, Lamar [TN]
