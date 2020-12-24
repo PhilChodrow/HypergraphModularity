@@ -115,7 +115,7 @@ function mutualInformation(Z, Ẑ, normalized = false)
 end
 
 
-function subHypergraph(H, b)
+function subHypergraph(H, b, Z = nothing)
     """
     b a boolean vector of the same length as H.N, indicating
     which nodes should be included
@@ -125,7 +125,14 @@ function subHypergraph(H, b)
     nodemap = Dict(zip(key, 1:length(key)))
     
     N_ = copy(H.N)
-    filter!(i -> i ∈ key, N_)
+    
+    ix = [N_[i] ∈ key for i in 1:length(N_)]
+    N_ = N_[ix]
+    
+    if !isnothing(Z)
+        Z_ = copy(Z)
+        Z_ = Z_[ix]
+    end
     
     N_ = [nodemap[i] for i in N_]
     
@@ -145,5 +152,8 @@ function subHypergraph(H, b)
     
     H_ = hypergraph(N_, E__, [])
     HypergraphModularity.computeDegrees!(H_)
+    if !isnothing(Z)
+        return H_, Z_
+    end
     return H_
 end

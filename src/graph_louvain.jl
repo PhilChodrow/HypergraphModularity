@@ -89,7 +89,7 @@ function VanillaModularity(A::SparseArrays.SparseMatrixCSC{Float64,Int64},gamma:
     return c
 end
 
-function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false)
+function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, binary=false, pseudocount = 0.0)
     """
     compute the dyadic resolution parameter associated to a partition using the formula from Newman (2016): https://arxiv.org/abs/1606.02319
     """
@@ -103,8 +103,8 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     # form degree sequence and edge counts
     D = vec(sum(G, dims=1))
 
-    m_in = 0
-    m_out = 0
+    m_in = pseudocount
+    m_out = pseudocount
 
     for k in 1:length(I)
         if Z[I[k]] == Z[J[k]]
@@ -117,7 +117,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     # compute resolution parameter
     V = [sum(D[findall(Z .== c)]) for c in unique(Z)]
     ωᵢ = 4*m*m_in / (sum(V.^2))
-    ωₒ = (2m - 2m_in)/(2m - (sum(V.^2)/(2m)))
+    ωₒ = (2m_out)/(2m - (sum(V.^2)/(2m)))
 
     if mode == "γ"
         γ = (ωᵢ - ωₒ)/(log(ωᵢ) - log(ωₒ))
@@ -128,7 +128,24 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
 end
 
 
-function dyadicModularity(H, Z, γ; weighted=true, binary=false)
+function dyadicModularity(H, Z, γ; weighted=false, binary=false)
+    """
+    Compute the normalized dyadic modularity a given partition in the graph obtained from projecting a hypergraph. 
+    The resolution parameter and basic properties of the dyadic graph projection can be specified. 
+
+    # Arguments
+    
+    - H::hypergraph, a hypergraph
+    - Z::Vector{Int4}, a label vector 
+    - γ::Float64, the resolution parameter. Must be strictly positive. 
+    - weighted::bool, whether to weight the clique obtained by projecting a hypergraph according to a factor of 1/(k-1), where k is the clique size. Choosing to do so preserves the degrees of nodes in the dyadic projection. If false and if binary is false, then each edge within the clique has weight 1. 
+    - binary::bool, whether to convert the graph to a binary graph in which present edges have weight 1 and absent edges have weight 0. If false and if weighted is false, then the weight of an edge between two nodes in the return value is equal to the number of hyperedges containing both of those nodes. 
+
+    # Returns
+
+    - Q::Float64, a normalized modularity score between -1 and 1. 
+
+    """
     G = CliqueExpansion(H, weighted, binary)
     d = vec(sum(G, dims=1))
 
