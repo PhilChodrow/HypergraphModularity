@@ -78,8 +78,10 @@ for ni = 1:length(Nvals)
     edgeweights = ones(m)
 
     if option == 1
+        tag = "sqrtnclusters"
         K = Kvals[ni]
     elseif option == 2
+        tag = "200clusters"
         K = 200
     else
         tag = "size200clusters"
