@@ -115,7 +115,7 @@ function computeDyadicResolutionParameter(H, Z; mode = "γ", weighted=true, bina
     end
 
     # compute resolution parameter
-    V = [sum(D[Z .== c]) for c in unique(Z)]
+    V = [sum(D[findall(Z .== c)]) for c in unique(Z)]
     ωᵢ = 4*m*m_in / (sum(V.^2))
     ωₒ = (2m_out)/(2m - (sum(V.^2)/(2m)))
 

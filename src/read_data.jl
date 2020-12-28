@@ -37,8 +37,7 @@ function read_hypergraph_edges(dataname::String, maxsize::Int64=25, minsize::Int
 end
 
 
-function read_hypergraph_data(dataname::String, maxsize::Int64=25, minsize::Int64=2, return_labels = true)
-    
+function read_hypergraph_data(dataname::String, maxsize::Int64=25, minsize::Int64=2, return_labels=true)
     E = read_hypergraph_edges(dataname, maxsize, minsize)
     
     n = maximum([maximum(e) for k in keys(E) for e in keys(E[k])])
@@ -60,7 +59,7 @@ function read_hypergraph_data(dataname::String, maxsize::Int64=25, minsize::Int6
     
     if return_labels
         labels = read_hypergraph_labels(dataname)
-        return hypergraph(N, E, D), labels
+        return hypergraph(N, E, D), labels[N]
     end
     
     return hypergraph(N, E, D)
