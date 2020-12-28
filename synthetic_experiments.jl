@@ -164,7 +164,7 @@ for ni = 1:length(Nvals)
     println(rpad("$(K)", 10))
     println(rpad("",  90, "-"))
 
-    matwrite("Output/N_$(N)_Kmax_($Kmax)_kmax_($kmax)_davg_($davg)_s_($s)_sqrtnclusters.mat",
+    matwrite("Output/N_$(N)_kmax_($kmax)_davg_($davg)_s_($s)_sqrtnclusters.mat",
     Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,"Nvals"=>Nvals,
     "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
     "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine))
