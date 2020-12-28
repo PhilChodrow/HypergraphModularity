@@ -22,7 +22,7 @@ if option == 1
     lower = 3
 elseif option == 2
     tag = "200clusters"
-    lower = 3
+    lower = 4
 else
     tag = "size200clusters"
     lower = 4
