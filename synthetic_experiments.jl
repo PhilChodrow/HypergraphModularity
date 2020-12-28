@@ -12,13 +12,22 @@ include("src/synthetic_hypergraphs.jl")
 include("src/louvain_utils.jl")
 include("src/graph_louvain.jl")
 ## Run experiment
-include("src/synthetic_hypergraphs.jl")
 
 kmin = 2
 kmax = 4
 davg = 10
 
-v = range(3,stop=6,length=10)
+if option == 1
+    tag = "sqrtnclusters"
+    lower = 3
+elseif option == 2
+    tag = "200clusters"
+    lower = 3
+else
+    tag = "size200clusters"
+    lower = 4
+end
+v = range(lower,stop=6,length=10)
 Nvals = round.(Int64,[10^i for i in v])
 
 # Nvals = [2000,5000,7500,10000, 12500, 15000, 20000,25000]
@@ -67,13 +76,22 @@ for ni = 1:length(Nvals)
     n = round(Int64,Nvals[ni])
     m = davg*n
     edgeweights = ones(m)
-    K = Kvals[ni]
+
+    if option == 1
+        K = Kvals[ni]
+    elseif option == 2
+        K = 200
+    else
+        tag = "size200clusters"
+        K = round(Int64,K/200)
+    end
+
     cluster_sizes=ones(K)
     cluster_prefs=ones(K)
 
     # pvals = [.9-1/sqrt(n), 1/n^3, 1/n^4]
     # pvals = [.6, 1/n^3, 1/n^4]
-    pvals = [.6, 1/n^2, 1/n^3]
+    pvals = [.6, 1/n^3, 1/n^4]
 
     # Draw s samples and cluster them with the parameters
     for sample = 1:s
@@ -164,10 +182,9 @@ for ni = 1:length(Nvals)
     println(rpad("$(K)", 10))
     println(rpad("",  90, "-"))
 
-    matwrite("Output/N_$(N)_kmax_($kmax)_davg_($davg)_s_($s)_sqrtnclusters.mat",
+    matwrite("Output/N_$(N)_kmax_($kmax)_davg_($davg)_s_($s)_$tag.mat",
     Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,"Nvals"=>Nvals,
     "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
     "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine))
-
 
 end
