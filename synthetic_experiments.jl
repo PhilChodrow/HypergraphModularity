@@ -83,7 +83,7 @@ for ni = 1:length(Nvals)
         K = 200
     else
         tag = "size200clusters"
-        K = round(Int64,K/200)
+        K = round(Int64,n/200)
     end
 
     cluster_sizes=ones(K)
