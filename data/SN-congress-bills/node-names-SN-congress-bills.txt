@@ -94,10 +94,8 @@ AIKEN
 BENTSEN
 HELMS
 NUNN
-BUCKLEY
 SYMINGTON
 STENNIS
-BYRD (VA.)
 SAXBE
 LAXALT
 STONE
@@ -287,7 +285,6 @@ Pryor, Mark Lunsford [AR]
 Graham, Lindsey O. [SC-3]
 Chambliss, Saxby [GA-8]
 Coleman, Norm [MN]
-Jeffords, James M. [VT]
 Alexander, Lamar [TN]
 Cornyn, John [TX]
 Dole, Elizabeth H. [NC]

@@ -7,7 +7,6 @@ ALLEN
 BEALL
 BENNETT
 BIBLE
-BUCKLEY
 CANNON
 CHILES
 CURTIS
@@ -43,7 +42,6 @@ BARTLETT
 BAYH
 BROOKE
 BURDICK
-BYRD (VA.)
 Byrd, Robert C. [WV]
 CRANSTON
 DOLE
@@ -284,7 +282,6 @@ NELSON
 Chambliss, Saxby [GA-8]
 Cornyn, John [TX]
 Graham, Lindsey O. [SC-3]
-Jeffords, James M. [VT]
 Pryor, Mark Lunsford [AR]
 Coleman, Norm [MN]
 Sununu, John E. [NH-1]

@@ -16,7 +16,6 @@ MATHIAS
 MCGOVERN
 GOLDWATER
 MELCHER
-BYRD (VA.)
 LAXALT
 ROTH
 TOWER
@@ -250,7 +249,6 @@ Barkley, Dean M. [MN]
 CARPER
 Murkowski, Lisa [AK]
 Chambliss, Saxby [GA-8]
-Jeffords, James M. [VT]
 Coleman, Norm [MN]
 Pryor, Mark Lunsford [AR]
 Dole, Elizabeth H. [NC]

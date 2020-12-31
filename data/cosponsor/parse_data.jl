@@ -25,17 +25,18 @@ function read_congress(fname)
                 # Harry F. Byrd, Jr. (independent democrat, map to democrat)
                 party = 100
             elseif id == 94240
-                # Jim Jeffords after he became an independent. Probably the most
-                # complicated. Ignore this one, but this still keeps his terms
-                # as a republican (different id)
+                # Jim Jeffords after he left Republicans. This is Probably the
+                # most complicated, but he mostly voted with the democrats.
+                party = 100
             else
                 println("nontraditional party affiliation")
                 @show grp
                 error(0)
             end
+        else
+            party_map[id] = party
+            name_map[id] = grp[1, :name]
         end
-        party_map[id] = party
-        name_map[id] = grp[1, :name]
     end
     return party_map, name_map
 end
