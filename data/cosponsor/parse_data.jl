@@ -33,9 +33,10 @@ function read_congress(fname)
                 @show grp
                 error(0)
             end
+        else
+            party_map[id] = party
+            name_map[id] = grp[1, :name]
         end
-        party_map[id] = party
-        name_map[id] = grp[1, :name]
     end
     return party_map, name_map
 end

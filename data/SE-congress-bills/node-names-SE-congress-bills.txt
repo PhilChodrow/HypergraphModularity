@@ -1,7 +1,6 @@
 ABOUREZK
 TUNNEY
 PERCY
-BUCKLEY
 CASE
 CLARK
 CRANSTON
@@ -93,7 +92,6 @@ PROXMIRE
 ALLEN
 NUNN
 TALMADGE
-BYRD (VA.)
 FULBRIGHT
 LONG
 MONTOYA
@@ -291,7 +289,6 @@ Alexander, Lamar [TN]
 CARPER
 Cornyn, John [TX]
 Graham, Lindsey O. [SC-3]
-Jeffords, James M. [VT]
 Murkowski, Lisa [AK]
 Pryor, Mark Lunsford [AR]
 Talent, Jim [MO-2]

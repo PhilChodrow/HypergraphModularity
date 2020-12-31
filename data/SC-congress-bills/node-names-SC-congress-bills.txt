@@ -2,7 +2,6 @@ MANSFIELD
 SCOTT (PA.)
 COOK
 BENTSEN
-BUCKLEY
 GOLDWATER
 GRAVEL
 HUDDLESTON
@@ -32,7 +31,6 @@ EASTLAND
 ALLEN
 BEALL
 BIDEN
-BYRD (VA.)
 CHILES
 EAGLETON
 ERVIN
@@ -285,7 +283,6 @@ Sununu, John E. [NH-1]
 Murkowski, Lisa [AK]
 Dole, Elizabeth H. [NC]
 Chambliss, Saxby [GA-8]
-Jeffords, James M. [VT]
 Cornyn, John [TX]
 Graham, Lindsey O. [SC-3]
 CARPER
