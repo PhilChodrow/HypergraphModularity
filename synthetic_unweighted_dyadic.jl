@@ -16,13 +16,14 @@ include("src/graph_louvain.jl")
 kmin = 2
 kmax = 4
 davg = 10
-option = 3
+
+
 lower = 3
 upper = 6
 v = range(lower,stop=upper,length=10)
 Nvals = round.(Int64,[10^i for i in v])
 
-Nvals = [1000, 2000, 5000, 10000, 15000, 20000,25000,100000]
+# Nvals = [1000, 2000, 5000, 10000, 15000, 20000,25000,100000]
 s = 1
 Kvals = round.(Int64,sqrt.(Nvals))
 
