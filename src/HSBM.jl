@@ -138,3 +138,6 @@ function countEdges(H::hypergraph)
     """
     sum([length(H.E[k]) for k in keys(H.E)])
 end
+
+
+Base.copy(H::hypergraph) = hypergraph(H.N, H.E, H.D)

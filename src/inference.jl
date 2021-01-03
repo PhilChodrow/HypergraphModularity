@@ -76,33 +76,36 @@ function learnParameters(H, Z, Ω, α0; max_iters = 10, verbose = false, tol = 1
     """
     kmax = length(α0) ÷ 2
 
-    obj = formObjective(H, Z, Ω)
+    objs = formObjectives(H, Z, Ω)
         
-    function G(a, α, k)
+    function G(a, α, k, pos)
         α_ = copy(α)
-        α_[k] = a[1]
-        return obj(α_)
+        α_[(pos == 1) ? k : (kmax + k)] = a[1]
+        return objs[k](α_)
     end
 
     α = copy(α0);
     
-    for i = 1:max_iters
-        old_val = obj(α)
-        for k in vcat((kmax+1):2kmax, 1:kmax)
-            res = Optim.optimize(a -> G(a, α, k), [α[k]], Optim.LBFGS()) # very slow and simple -- no gradient information
-            α[k] = Optim.minimizer(res)[1]
+    for i ∈ 1:max_iters
+        old_val = sum(objs[k](α) for k in 1:kmax)
+        for pos ∈ [2,1]        
+            for k ∈ 1:kmax
+                ix = (pos == 1) ? k : (kmax + k)
+                a0 = α[ix]
+                res = Optim.optimize(a -> G(a, α, k, pos), [a0], Optim.LBFGS()) 
+                α[ix] = Optim.minimizer(res)[1]
+            end
         end
-        new_val = obj(α)
+        new_val = sum(objs[k](α) for k in 1:kmax)
         if abs((new_val - old_val)) < tol
             return α
         end
         if verbose
-            println("Q = $Float64(modularity(H, Z, Ω;α = α))")
+            println("Q = $(Float64(modularity(H, Z, Ω;α = α)))")
         end
     end
     return(α)
 end
-
 
 function formObjectives(H, Z, Ω)
     ℓ       = maximum(Z)
@@ -113,7 +116,7 @@ function formObjectives(H, Z, Ω)
 
     function obj(α, k)
         val = 0.0
-        for p in keys Ŝ
+        for p in keys(Ŝ)
             if sum(p) == k
                 Op   = Ω.ω(p, α)
                 val += get(C, p, 0)*log(Op) - Ŝ[p]*Op
@@ -121,7 +124,7 @@ function formObjectives(H, Z, Ω)
         end
         return - val
     end
-    return [α → obj(α, k) for k in 1:kmax]
+    return [(α -> obj(α, k)) for k in 1:kmax]
 end
 
 

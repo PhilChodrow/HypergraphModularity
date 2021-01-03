@@ -157,3 +157,30 @@ function subHypergraph(H, b, Z = nothing)
     end
     return H_
 end
+
+function projectedGraph(H)
+    
+    n = length(H.D)
+    A = CliqueExpansion(H, false, false)
+    ix, jx, w = SparseArrays.findnz(A)
+    E = Dict(sort([ix[k], jx[k]]) => w[k] for k in 1:length(ix))
+
+    H̄ = hypergraph(collect(1:n), Dict(1 => Dict(), 2 => E), [0])
+    computeDegrees!(H̄);
+    return H̄
+end
+
+function kcore(H, Z, core)
+    H_, Z_ = copy(H), copy(Z)
+    for i in 1:10
+        H_, Z_ = subHypergraph(H_, H_.D .>= core, Z_)
+    end
+    return H_, Z_
+end
+
+function removeEdges!(H; remove = [])
+    for k in remove
+        pop!(H.E, k, nothing)
+    end
+    computeDegrees!(H)
+end

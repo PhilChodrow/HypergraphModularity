@@ -7,10 +7,10 @@ function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction;α,clusterpenal
     return Z
 end
 
-function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
-    Z = SuperNode_PPLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order,Z0 = Z0)
-    return Z
-end
+# function SuperNode_PPLouvain(H::hypergraph,Ω::IntensityFunction,kmax::Int64 = maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true;α,verbose=true,scan_order="random", Z0 = collect(1:length(H.D)))
+#    Z = SuperNode_PPLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order,Z0 = Z0)
+#    return Z
+# end
 
 function SuperNode_PPLouvain(node2edges::Vector{Vector{Int64}},
     edge2nodes::Vector{Vector{Int64}},w::Vector{Float64},
