@@ -101,7 +101,7 @@ for ni = 1:length(Nvals)
         #cut_weights, vol_weights, learntime, α = learn_alpha_wrapper(H,ground_truth,kmax,n)
         cut_weights, vol_weights, omega, EdgesAndCuts = learn_omega_aon(e2n,ground_truth,kmax,deg,n)
         γ̂ = computeDyadicResolutionParameter(H, ground_truth)
-        γ̂u = computeDyadicResolutionParameter(H, ground_truth;weighted = false)
+        gu = computeDyadicResolutionParameter(H, ground_truth;weighted = false)
 
         # Run with hypergraph version
         Zwarm = collect(1:n)  # no warm start
@@ -132,7 +132,7 @@ for ni = 1:length(Nvals)
 
         # Run dyadic version, unweighted
         tic =  time()
-        Z_udyadic = CliqueExpansionModularity(H,uγ̂;maxits = maxits,weighted = false)
+        Z_udyadic = CliqueExpansionModularity(H,gu;maxits = maxits,weighted = false)
         toc = time()-tic
         clusts = maximum(Z_udyadic)
         ARI = ari(ground_truth,Z_udyadic)
