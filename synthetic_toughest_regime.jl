@@ -17,7 +17,7 @@ kmin = 2
 kmax = 4
 davg = 10
 
-lower = 3
+lower = 4
 v = range(lower,stop=6,length=10)
 Nvals = round.(Int64,[10^i for i in v])
 
@@ -30,7 +30,6 @@ randflag = false
 verbose = false
 clusterpenalty = 0
 r_sizes = ones(kmax-kmin+1) # hyperedges of different sizes, equally likely
-r_sizes = collect(1:3)      # larger hyperedges more likely
 N = maximum(Nvals)
 
 aris = zeros(length(Nvals),s)
@@ -102,6 +101,7 @@ for ni = 1:length(Nvals)
         #cut_weights, vol_weights, learntime, α = learn_alpha_wrapper(H,ground_truth,kmax,n)
         cut_weights, vol_weights, omega, EdgesAndCuts = learn_omega_aon(e2n,ground_truth,kmax,deg,n)
         γ̂ = computeDyadicResolutionParameter(H, ground_truth)
+        γ̂u = computeDyadicResolutionParameter(H, ground_truth;weighted = false)
 
         # Run with hypergraph version
         Zwarm = collect(1:n)  # no warm start
@@ -132,7 +132,7 @@ for ni = 1:length(Nvals)
 
         # Run dyadic version, unweighted
         tic =  time()
-        Z_udyadic = CliqueExpansionModularity(H,γ̂;maxits = maxits,weighted = false)
+        Z_udyadic = CliqueExpansionModularity(H,uγ̂;maxits = maxits,weighted = false)
         toc = time()-tic
         clusts = maximum(Z_udyadic)
         ARI = ari(ground_truth,Z_udyadic)
