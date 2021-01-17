@@ -2,7 +2,7 @@
 Functions for estimating an intensity function Ω from observed data. Throughout, H is an object of type hypergraph and Z is a label vector of the same length as H.D. The entries of Z are integers between 1 and kmax, where kmax is the number of clusters. Z is assumed to contain at least one entry with value k for each k ∈ [kmax]. 
 """
 
-function estimateΩEmpirically(H, Z; pseudocount=0.0, aggregator=identity, bigNums = true)
+function estimateΩEmpirically(H, Z; pseudocount=0.0, aggregator=identity, bigNums = true, two_groups = false)
     """
     Estimate an intensity function Ω directly from data, with no parameterization. 
     The intensity function is assumed to be symmetric under permutations of node labels. 
@@ -23,7 +23,13 @@ function estimateΩEmpirically(H, Z; pseudocount=0.0, aggregator=identity, bigNu
     ℓ = maximum(keys(H.E))  # size of largest hyperedge
     S = evalSums(Z,H,maximum(Z),true)[3]
     
-    C = Dict(p => 0.0 for p in partitionsUpTo(ℓ))
+    if two_groups
+        P = keys(S)
+    else
+        P = partitionsUpTo(ℓ) 
+    end
+        
+    C = Dict(p => 0.0 for p in P)
     for k in keys(H.E)
         Ek = H.E[k]
         for e in keys(Ek)

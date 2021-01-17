@@ -310,7 +310,7 @@ function SuperNodeLouvain(H::hypergraph,kmax::Int64,Ω,maxits::Int64=100,bigInt:
     SuperNodeLouvain(H,Ω;α=α,kmax=kmax,maxits=maxits,bigInt=bigInt,verbose=verbose,scan_order=scan_order, Z0 = copy(Z0))
 end
 
-function SuperNodeLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="lexical", Z0 = nothing)
+function SuperNodeLouvain(H::hypergraph,Ω::IntensityFunction;α,kmax=maximum(keys(H.E)),maxits::Int64=100,bigInt::Bool=true,verbose=true,scan_order="lexical", Z0 = collect(1:length(H.D)))
     """
     Running Louvain and then the super-node louvain steps until no more
     progress is possible

@@ -51,7 +51,7 @@ function computeMoments(Z::Vector{<:Integer}, D::Vector{<:Integer}, r::Integer, 
     return(V, μ)
 end
 
-function evalConstants(r::Int64; bigInt::Bool=true)
+function evalConstants(r::Int64; ℓ = r, bigInt::Bool=true)
     """
     Evaluate the combinatorial constants required to convert the "convenient" sums M to the required sums N required for modularity calculations.
     r::The size of the largest hyperedge.
@@ -64,18 +64,18 @@ function evalConstants(r::Int64; bigInt::Bool=true)
         else      C = Dict{Vector{Int64},Int64}()
         end
 
-    for i = 1:r, j = 1:i, p in Combinatorics.partitions(i, j)
+    for i = 1:r, j = 1:minimum([i,ℓ]), p in Combinatorics.partitions(i, j)
         orderCorrection =
             if bigInt prod([factorial(big(c)) for c in values(StatsBase.countmap(p))])
             else      prod([factorial(c) for c in values(StatsBase.countmap(p))])
             end
         # orderCorrection = 1
-        C[p] = Combinatorics.multinomial(p...) ÷ orderCorrection
+        C[p] = Combinatorics.multinomial(big.(p)...) ÷ orderCorrection
     end
     return(C)
 end;
 
-function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants::Bool=true, ℓ::Integer=0, bigInt::Bool=true)
+function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants::Bool=true, ℓ::Integer=maximum(Z), bigInt::Bool=true)
     """
     Z::Array{Int64, 1} the vector of integer group labels
     D::Array{Int64, 1} the vector of degrees
@@ -85,7 +85,7 @@ function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants:
     bigInt::Bool, whether to use bigInt conversions for D and Z. Recommended unless the instance is VERY small.
     return (V::Array{bigInt,1}, μ::Array{bigInt,1}, M::Dict{Vector{Int64},bigInt}, with V and μ as described in computeMoments(), and M::Dict{Vector{Int64},bigInt} is the array of (optionally uncorrected) volume sums.
     """
-
+    
     if bigInt
         D = convert(Array{BigInt,1}, D)
     end
@@ -93,13 +93,15 @@ function evalSums(Z::Vector{<:Integer}, D::Vector{Int64}, r::Integer; constants:
     V, μ = computeMoments(Z, D, r, ℓ)
 
     M = bigInt ? Dict{Vector{Int64}, BigInt}() : Dict{Vector{Int64}, Int64}()
-
-    for i = 1:r, j = 1:i, p in Combinatorics.partitions(i, j)
+    
+    ix = ℓ == 1 ? length(Z) : ℓ
+    
+    for i = 1:r, j = 1:minimum([i,ix]), p in Combinatorics.partitions(i, j)
         M[p] = μ[p[end]]*get(M, p[1:(end-1)], 1) - correctOvercounting(M,p)
     end
 
     if constants
-        C = evalConstants(r, bigInt=bigInt)
+        C = evalConstants(r; bigInt=bigInt, ℓ = ix)
         for p in keys(M)
             M[p] *= C[p]
         end
