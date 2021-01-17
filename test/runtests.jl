@@ -7,11 +7,6 @@ using HypergraphModularity
 using StatsBase
 using Combinatorics
 
-
-
-
-
-
 # just testing that these run correctly at the moment
 @testset "Ω" begin
 
@@ -50,13 +45,19 @@ end
 
 # test for dyadic log likelihood
 # currently broken, need to fix. 
+
+##
 @testset "dyadic likelihood" begin
     ωᵢ = 1.0
     ωₒ = 0.1
     L₁ = dyadicLogLikelihood(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false) 
-    L₂ = HypergraphModularity.dyadicLogLikelihoodNaive(H, Z, ωᵢ, ωₒ; weighted=false, binary=false, constants = false) 
+    L₂ = HypergraphModularity.dyadicLogLikelihoodDirect(H, Z, ωᵢ, ωₒ) 
     @test L₁ ≈ L₂
 end
+##
+
+##
+##
 
 
 
