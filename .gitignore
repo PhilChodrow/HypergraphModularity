@@ -37,7 +37,7 @@ src/.ipynb_checkpoints/*
 fig/*
 .gitignore.swp
 .vscode/
-
+hmod_code.code-workspace
 
 
 
