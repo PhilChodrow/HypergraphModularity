@@ -14,15 +14,13 @@ include("src/graph_louvain.jl")
 ## Run experiment
 
 kmin = 2
-kmax = 3
+kmax = 4
 davg = 10
 
-lower = 4
-upper = 6
-v = range(lower,stop=upper,length=10)
+lower = 3
+v = range(lower,stop=6,length=10)
 Nvals = round.(Int64,[10^i for i in v])
 
-# Nvals = [10000, 15000, 20000,25000,100000]
 s = 1
 Kvals = round.(Int64,sqrt.(Nvals))
 
@@ -32,7 +30,7 @@ randflag = false
 verbose = false
 clusterpenalty = 0
 r_sizes = ones(kmax-kmin+1) # hyperedges of different sizes, equally likely
-r_sizes = [1; 2]
+r_sizes = collect(1:3)      # larger hyperedges more likely
 N = maximum(Nvals)
 
 aris = zeros(length(Nvals),s)
@@ -49,6 +47,16 @@ aris_dyadic = zeros(length(Nvals),s)
 nmis_dyadic = zeros(length(Nvals),s)
 runs_dyadic = zeros(length(Nvals),s)
 cnum_dyadic = zeros(length(Nvals),s)
+
+aris_urefine = zeros(length(Nvals),s)
+nmis_urefine = zeros(length(Nvals),s)
+runs_urefine = zeros(length(Nvals),s)
+cnum_urefine = zeros(length(Nvals),s)
+
+aris_udyadic = zeros(length(Nvals),s)
+nmis_udyadic = zeros(length(Nvals),s)
+runs_udyadic = zeros(length(Nvals),s)
+cnum_udyadic = zeros(length(Nvals),s)
 
 println("Louvain Runtime Performance")
 print(rpad("Method", 20))
@@ -71,22 +79,20 @@ for ni = 1:length(Nvals)
     edgeweights = ones(m)
 
     if option == 1
-        tag = "sqrtn_clusters_23"
+        tag = "sqrtnclusters"
         K = Kvals[ni]
     elseif option == 2
+        tag = "200clusters"
         K = 200
-        tag = "200_clusters_23"
     else
+        tag = "size200clusters"
         K = round(Int64,n/200)
-        tag = "size200_clusters_23"
     end
 
     cluster_sizes=ones(K)
     cluster_prefs=ones(K)
 
-    # pvals = [.9-1/sqrt(n), 1/n^3, 1/n^4]
-    # pvals = [.6, 1/n^3, 1/n^4]
-    pvals = [.6, 1/n^3]
+    pvals = [.7, .1, 1/n]
 
     # Draw s samples and cluster them with the parameters
     for sample = 1:s
@@ -112,7 +118,7 @@ for ni = 1:length(Nvals)
         runs[ni,sample] = toc
         cnum[ni,sample] = clusts
 
-        # Run dyadic version
+        # Run dyadic version, weighted
         tic =  time()
         Z_dyadic = CliqueExpansionModularity(H,γ̂;maxits = maxits)
         toc = time()-tic
@@ -124,7 +130,19 @@ for ni = 1:length(Nvals)
         runs_dyadic[ni,sample] = toc
         cnum_dyadic[ni,sample] = clusts
 
-        # Refine dyadic output
+        # Run dyadic version, unweighted
+        tic =  time()
+        Z_udyadic = CliqueExpansionModularity(H,γ̂;maxits = maxits,weighted = false)
+        toc = time()-tic
+        clusts = maximum(Z_udyadic)
+        ARI = ari(ground_truth,Z_udyadic)
+        NMI = nmi(ground_truth,Z_udyadic)
+        aris_udyadic[ni,sample] = ARI
+        nmis_udyadic[ni,sample] = NMI
+        runs_udyadic[ni,sample] = toc
+        cnum_udyadic[ni,sample] = clusts
+
+        # Refine weighted dyadic output
         Zwarm = Z_dyadic
         tic = time()
         Zs = SuperNode_PPLouvain(n2e,e2n,edgeweights,deg,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Zwarm,clusterpenalty)
@@ -138,18 +156,45 @@ for ni = 1:length(Nvals)
         nmis_refine[ni,sample] = NMI
         runs_refine[ni,sample] = toc
         cnum_refine[ni,sample] = clusts
+
+        # Refine unweighted dyadic output
+        Zwarm = Z_udyadic
+        tic = time()
+        Zs = SuperNode_PPLouvain(n2e,e2n,edgeweights,deg,elen,cut_weights,vol_weights,kmax,randflag,maxits,verbose,Zwarm,clusterpenalty)
+        toc = time()-tic
+        Z = Zs[:,end]
+        clusts = maximum(Z)
+        ARI = ari(ground_truth,Z)
+        NMI = nmi(ground_truth,Z)
+
+        aris_urefine[ni,sample] = ARI
+        nmis_urefine[ni,sample] = NMI
+        runs_urefine[ni,sample] = toc
+        cnum_urefine[ni,sample] = clusts
     end
 
-    runmed = median(runs_dyadic[ni,:])
-    arimed = median(aris_dyadic[ni,:])
-    nmimed = median(nmis_dyadic[ni,:])
-    cnummed = median(cnum_dyadic[ni,:])
-    print(rpad("Dyadic", 20))
+    runmed = median(runs_udyadic[ni,:])
+    arimed = median(aris_udyadic[ni,:])
+    nmimed = median(nmis_udyadic[ni,:])
+    cnummed = median(cnum_udyadic[ni,:])
+    print(rpad("UDyadic", 20))
     print(rpad("$n", 10))
     print(rpad("$(round(arimed,digits = 5))", 15))
     print(rpad("$(round(nmimed,digits = 5))", 15))
     print(rpad("$(round(cnummed))", 15))
     println(rpad("$(round(runmed; digits=3))", 10))
+
+    runmed = median(runs_dyadic[ni,:])
+    arimed = median(aris_dyadic[ni,:])
+    nmimed = median(nmis_dyadic[ni,:])
+    cnummed = median(cnum_dyadic[ni,:])
+    print(rpad("WDyadic", 20))
+    print(rpad("$n", 10))
+    print(rpad("$(round(arimed,digits = 5))", 15))
+    print(rpad("$(round(nmimed,digits = 5))", 15))
+    print(rpad("$(round(cnummed))", 15))
+    println(rpad("$(round(runmed; digits=3))", 10))
+
 
     print(rpad("AONLouv", 20))
     runmed = median(runs[ni,:])
@@ -164,7 +209,19 @@ for ni = 1:length(Nvals)
     println(rpad("$(K)", 10))
     # println(rpad("",  80, "-"))
 
-    print(rpad("Refined", 20))
+    print(rpad("U-Ref", 20))
+    runmed = median(runs_urefine[ni,:])
+    arimed = median(aris_urefine[ni,:])
+    nmimed = median(nmis_urefine[ni,:])
+    cnummed = median(cnum_urefine[ni,:])
+    print(rpad("$n", 10))
+    print(rpad("$(round(arimed,digits = 5))", 15))
+    print(rpad("$(round(nmimed,digits = 5))", 15))
+    print(rpad("$(round(cnummed))", 15))
+    print(rpad("$(round(runmed; digits=3))", 10))
+    println(rpad("$(K)", 10))
+
+    print(rpad("W-Ref", 20))
     runmed = median(runs_refine[ni,:])
     arimed = median(aris_refine[ni,:])
     nmimed = median(nmis_refine[ni,:])
@@ -177,9 +234,12 @@ for ni = 1:length(Nvals)
     println(rpad("$(K)", 10))
     println(rpad("",  90, "-"))
 
-    # matwrite("Output/N_$(N)_kmax_($kmax)_davg_($davg)_s_($s)_$tag.mat",
-    # Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,"Nvals"=>Nvals,
-    # "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
-    # "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine))
+    matwrite("../../fig/performance_throughput/Tougher_regime_experiment_$tag.mat",
+    Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,"Nvals"=>Nvals,
+    "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
+    "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine,
+    "aris_udyadic"=>aris_udyadic,"nmis_udyadic"=>nmis_udyadic,"runs_udyadic"=>runs_udyadic,"cnum_udyadic"=>cnum_udyadic,
+    "aris_urefine"=>aris_urefine,"nmis_urefine"=>nmis_urefine,"runs_urefine"=>runs_urefine,"cnum_urefine"=>cnum_urefine
+    ))
 
 end

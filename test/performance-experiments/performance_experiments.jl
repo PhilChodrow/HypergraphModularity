@@ -161,7 +161,7 @@ function run_performance_exp(Kvals,kmin,kmax,pvals,davg,Nvals,s,tag="")
         println(rpad("",  80, "-"))
     end
 
-    matwrite("Output/N_$(N)_Kmax_($Kmax)_kmax_($kmax)_davg_($davg)_s_($s)$tag.mat",
+    matwrite("../../fig/performance_throughput/N_$(N)_Kmax_($Kmax)_kmax_($kmax)_davg_($davg)_s_($s)$tag.mat",
     Dict("aris"=>aris,"nmis"=>nmis,"runs"=>runs,"cnum"=>cnum,"pvals"=>pvals,"Kvals"=>Kvals,
     "aris_dyadic"=>aris_dyadic,"nmis_dyadic"=>nmis_dyadic,"runs_dyadic"=>runs_dyadic,"cnum_dyadic"=>cnum_dyadic,
     "aris_refine"=>aris_refine,"nmis_refine"=>nmis_refine,"runs_refine"=>runs_refine,"cnum_refine"=>cnum_refine))
