@@ -215,7 +215,7 @@ function learn_omega_aon(e2n,Z,kmax,d,n)
 
     # initialize to one as a heuristic to avoid taking log of 0
     EdgesAndCuts = zeros(2,kmax)
-    EdgesAndCuts[1,:] = ones(1,kmax)
+    EdgesAndCuts[1,:] = 0.01*ones(1,kmax)
 
     # Compute the cut penalty for each hyperedge size
     for j = 1:m
