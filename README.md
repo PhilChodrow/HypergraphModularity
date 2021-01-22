@@ -1,11 +1,5 @@
-# hypergraph_modularities_code
-Code for modularities in hypergraphs. 
+# Hypergraph Clustering: From Blockmodels to Modularities
 
-To use this code in a notebook, include the following two lines: 
+*Phil Chodrow (UCLA), Nate Veldt (Cornell), and Austin Benson (Cornell)*
 
-```
-using Pkg; Pkg.activate(".")
-using HypergraphModularity
-```
-
-
+Code for a forthcoming preprint on hypergraph clustering via maximum-likelihood inference in a degree-corrected hypergraph stochastic blockmodel. The code in this repository is sufficient to reproduce the main results and figures of the preprint. We intend to release soon a Julia package for hypergraph clustering via the presented methods. 
