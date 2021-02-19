@@ -130,20 +130,20 @@ end
 
 function dyadicModularity(H, Z, γ; weighted=false, binary=false)
     """
-    Compute the normalized dyadic modularity a given partition in the graph obtained from projecting a hypergraph. 
-    The resolution parameter and basic properties of the dyadic graph projection can be specified. 
+    Compute the normalized dyadic modularity a given partition in the graph obtained from projecting a hypergraph.
+    The resolution parameter and basic properties of the dyadic graph projection can be specified.
 
     # Arguments
-    
+
     - H::hypergraph, a hypergraph
-    - Z::Vector{Int4}, a label vector 
-    - γ::Float64, the resolution parameter. Must be strictly positive. 
-    - weighted::bool, whether to weight the clique obtained by projecting a hypergraph according to a factor of 1/(k-1), where k is the clique size. Choosing to do so preserves the degrees of nodes in the dyadic projection. If false and if binary is false, then each edge within the clique has weight 1. 
-    - binary::bool, whether to convert the graph to a binary graph in which present edges have weight 1 and absent edges have weight 0. If false and if weighted is false, then the weight of an edge between two nodes in the return value is equal to the number of hyperedges containing both of those nodes. 
+    - Z::Vector{Int4}, a label vector
+    - γ::Float64, the resolution parameter. Must be strictly positive.
+    - weighted::bool, whether to weight the clique obtained by projecting a hypergraph according to a factor of 1/(k-1), where k is the clique size. Choosing to do so preserves the degrees of nodes in the dyadic projection. If false and if binary is false, then each edge within the clique has weight 1.
+    - binary::bool, whether to convert the graph to a binary graph in which present edges have weight 1 and absent edges have weight 0. If false and if weighted is false, then the weight of an edge between two nodes in the return value is equal to the number of hyperedges containing both of those nodes.
 
     # Returns
 
-    - Q::Float64, a normalized modularity score between -1 and 1. 
+    - Q::Float64, a normalized modularity score between -1 and 1.
 
     """
     G = CliqueExpansion(H, weighted, binary)
@@ -288,14 +288,12 @@ function Many_Louvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{F
     for k = 1:numtimes
 
         ######
-        # can be replaced with a "run hypergraph modularity" function
         Cs = LambdaLouvain(A,w,lam,true,maxits)
         ######
 
         c = Cs[:,end]
 
         ######
-        # can be replaced with a "run hypergraph modularity" function
         obj = LamCCobj(A,c,w,lam)
         ######
 
@@ -323,13 +321,9 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
     n = size(A,1)
 
     # Step 1: greedy moves until no more improvement
-    #########
-    # We can replace this with a greedy moves function for hypergraph modularity
     c, improved = LambdaLouvain_Step(A,w,lam,randflag,maxits,clusterpenalty)
-    #########
 
-    # This code keeps track of the clustering that is found after each call to
-    # Step 1.
+    # Keeps track of the clustering that is found after each call to Step 1.
     if improved
         Cs = c
         c_old = copy(c)
@@ -342,12 +336,7 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
 
         # Step 2: Collapse the clustering into supernodes
 
-        ########
-        # Should be able to tweak this for hypergraph modularity
         Anew, wnew = collapse_clustering(A,w,c_old)
-        # wnew is the weight that comes from summing weights in the same cluster
-        # Anew is the reduced adjacency matrix of supernodes
-        ########
 
         # Step 1: Go back to greedy local moves, this time on the reduced graph
         cSuper, improved = LambdaLouvain_Step(Anew,wnew,lam,randflag,maxits,clusterpenalty)
@@ -372,8 +361,6 @@ function LambdaLouvain(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{
 
                 # Get individual node ID that are in supernode i.
 
-                # findall is slow, but this typically won't need to be called many times
-                # SuperI_nodes = findall(x->x==i,c_old)
                 SuperI_nodes = Clusters[i]
                 c_new[SuperI_nodes] .= SuperI_Cluster
             end
@@ -407,9 +394,7 @@ Run Step 1 of the Louvain algorithm: iterate through nodes and greedily move
 nodes to adjacent clusters.
 """
 function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Vector{Float64},lam::Float64,randflag::Bool=false,maxits::Int64=Inf,clusterpenalty::Float64=0.0)
-    # @assert(LinearAlgebra.issymmetric(A))
     n = size(A,1)
-    # println("Merging $n Communities")
 
     # This permutes the node labels, to add randomization in the Louvain
     # algorithm so that you don't always traverse the nodes in the same order
@@ -429,17 +414,11 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
     # number of clusters
     K = n
 
-    # This stores the graph as an an adjacency list: it's super helpful
-    # to be able to quickly get the set of neighbors for a given node
     # Neighs[i] lists nodes that share an edge with node i
     # degvec[i] = number of neighbors of node i
     Neighbs, degvec = ConstructAdj(A,n)
 
-    # Repeatedly calilng "findall" on the cluster vector c is an inefficient
-    # way to get all the nodes that belong in one cluster.
-    # Instead, we store a vector of n clusters
-    # By the end, many of these will be empty clusters! But it's still
-    # faster this way.
+    # Store a vector of n clusters
     Clusters = Vector{Vector{Int64}}()
     for v = 1:n
         push!(Clusters, Vector{Int64}())
@@ -464,7 +443,6 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
 
             clus_size = length(Ci)
 
-            # Ni = findall(x->x>0, A[i,:]) # findall is slow!
             Ni = Neighbs[i]
 
             ## First few lines here essentially compute the current contribution
@@ -497,11 +475,7 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
                     change = 0
                 else
 
-                    # Cj = findall(x->x == Cj_ind,c)
                     Cj = Clusters[Cj_ind]
-
-                    # Find the neighbors of i in Cj
-                    # cj_neighbs = intersect(Ni,Cj)
 
                     # Moving i from Ci to Cj adds negative mistakes
                     neg_outer = w[i]*(sum(w[Cj]))
@@ -509,8 +483,6 @@ function LambdaLouvain_Step(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::Ve
                     # Moving i from Ci to Cj decreases positive mistakes
 
                     pos_outer = mysum(Ai,Cj)
-                    #pos_outer = sum(Ai[Cj])
-                    # pos_outer2 = sum(A[i,Cj])
 
                     total_outer = lam*neg_outer - pos_outer
 
@@ -622,18 +594,13 @@ function collapse_clustering(A::SparseArrays.SparseMatrixCSC{Float64,Int64},w::V
     for i = 1:N
         Ci = sort(Clusters[i])
         wnew[i] = sum(w[Ci])
-        # println("new")
-        # @time ACi = sparse(A[:,Ci]')
-        # @time A[Ci,:]
         ACi = A[:,Ci]
         for j in ClusterNeighbs[i]
             Cj = Clusters[j]
             Eij = sum(ACi[Cj,:])
-            # @assert(Eij > 0)
             push!(I,i)
             push!(J,j)
             push!(V,Eij)
-            # Anew[i,j] = Eij
         end
     end
 

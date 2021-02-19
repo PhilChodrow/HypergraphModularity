@@ -22,21 +22,17 @@ import DelimitedFiles  #
 include("omega.jl")
 include("HSBM.jl")
 
-#include("cut.jl")
 include("vol.jl")
 
 include("utils.jl")
 
 include("dict_ops.jl")
-#include("diffs.jl")
 
 include("inference.jl")
 include("objectives.jl")
 
 include("graph_louvain.jl")
-#include("hyper_format.jl")
 include("louvain_utils.jl")
-#include("hyperlouvain_helpers.jl")
 include("general_hypergraph_louvain.jl")
 include("read_data.jl")          # we should move this out of the package
 include("analysis_helpers.jl")   # this too
@@ -67,16 +63,6 @@ export evalCuts
 export evalConstants
 export increments
 export addIncremens
-
-export hyperedge_formatting
-export EdgeMap
-export NaiveCutDiff
-export CutDiff
-
-export first_term_eval
-export hyperedge_formatting
-export first_term_v2
-export first_term_v3
 
 export logLikelihood
 export modularity
